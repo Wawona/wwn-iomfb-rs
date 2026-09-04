@@ -27,6 +27,7 @@ dyld cache image `IOMobileFramebuffer`.
 - Park `watchdogd` or `killall backboardd`
 
 HID / SpringBoard park is Wawona Desktop policy, not this crate.
+Touch mapping and the 16-slot seat are this crate (`TouchSeat`).
 
 ## DAG
 

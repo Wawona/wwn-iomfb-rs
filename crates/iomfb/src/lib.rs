@@ -17,7 +17,7 @@ pub use call::{export_is_stub, export_ptr};
 pub use gpu::{GpuFrame, GpuSwapchain};
 pub use iomfb_abi::{PixelFormat, PresentStatus, WaitOutcome, SWAPCHAIN_BUFFERS};
 pub use surface::{IoSurface, MetalDevice, MetalQueue, MetalTexture};
-pub use touch::TouchMap;
+pub use touch::{TouchEvent, TouchMap, TouchSeat, TouchSpace, TouchState};
 
 use iomfb_abi::{DisplayRef, DisplaySize, IOMFB_OK};
 use iomfb_sys::{load, Symbols};

@@ -61,5 +61,10 @@ int main(void) {
         (void)is_main(fb, &main);
     }
     printf("display %.0fx%.0f id=%u main=%u ready=%p\n", size[0], size[1], id, main, (void *)ready);
+    {
+        int w = (int)size[0];
+        int h = (int)size[1];
+        printf("touch map 0,0 -> 0,0  1,1 -> %d,%d slots=16\n", w > 0 ? w - 1 : 0, h > 0 ? h - 1 : 0);
+    }
     return bound == n ? 0 : 4;
 }

@@ -24,8 +24,11 @@ IOSurface into `present_external`. The IOSurfaceID must not change.
 | Jailbreak tweak | same library, process already unsandboxed | Sileo / ElleKit is the tweak, not this crate |
 | Wawona Mode B Desktop | later L4 call into `GpuSwapchain::present_external` | TrollStore or Sileo |
 
-HID / SpringBoard park is **not** this crate. [`TouchMap`](../crates/iomfb/src/touch.rs)
-only converts normalized points to the IOMFB pixel grid.
+HID / SpringBoard park is **not** this crate. [`TouchSeat`](../crates/iomfb/src/touch.rs)
+maps host points onto the IOMFB pixel grid (normalized, view, pixel, or
+HID) and tracks 16 slots with the same state numbers as Wawona Mode B
+(`0` up, `1` down, `2` motion, `3` cancel). Callers still supply the
+points. `iomfb_touch_inject` is the C entry.
 
 ## Optimizations this crate owns
 

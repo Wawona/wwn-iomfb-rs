@@ -25,6 +25,26 @@ extern "C" {
 #define IOMFB_C_NULL_SURFACE -6
 #define IOMFB_C_INCOMPATIBLE -7
 
+#define IOMFB_TOUCH_UP 0
+#define IOMFB_TOUCH_DOWN 1
+#define IOMFB_TOUCH_MOTION 2
+#define IOMFB_TOUCH_CANCEL 3
+#define IOMFB_TOUCH_SLOTS 16
+#define IOMFB_TOUCH_SPACE_NORMALIZED 0
+#define IOMFB_TOUCH_SPACE_VIEW 1
+#define IOMFB_TOUCH_SPACE_PIXEL 2
+#define IOMFB_TOUCH_SPACE_HID 3
+
+typedef struct iomfb_touch_event {
+    int32_t id;
+    int32_t state;
+    uint32_t x;
+    uint32_t y;
+    double nx;
+    double ny;
+    uint8_t slot;
+} iomfb_touch_event;
+
 typedef struct iomfb_present_info {
     int32_t token;
     int32_t wait_rc;
@@ -81,6 +101,22 @@ int iomfb_touch_map(
     double ny,
     uint32_t *out_x,
     uint32_t *out_y);
+int iomfb_touch_open(void *display, void **out);
+int iomfb_touch_open_swapchain(void *swapchain, void **out);
+int iomfb_touch_set_view(void *touch, double view_w, double view_h);
+int iomfb_touch_set_dest(void *touch, double x, double y, double w, double h);
+int iomfb_touch_set_rotation(void *touch, int32_t degrees);
+int iomfb_touch_inject(
+    void *touch,
+    int32_t id,
+    int32_t state,
+    double x,
+    double y,
+    int32_t space,
+    iomfb_touch_event *out);
+int iomfb_touch_active_count(void *touch);
+int iomfb_touch_cancel_all(void *touch);
+void iomfb_touch_close(void *touch);
 
 uint32_t iomfb_bound_export_count(void);
 void *iomfb_export(const char *name);

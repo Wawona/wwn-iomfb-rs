@@ -149,6 +149,16 @@ impl GpuSwapchain {
     pub fn display(&self) -> &Display {
         &self.display
     }
+
+    /// Pixel grid of this swapchain. Same size IOMFB `GetDisplaySize` used.
+    pub fn touch_map(&self) -> crate::TouchMap {
+        crate::TouchMap::new(self.width, self.height)
+    }
+
+    /// Seat on this swapchain. HID steal stays the caller.
+    pub fn touch_seat(&self) -> crate::TouchSeat {
+        crate::TouchSeat::new(self.touch_map())
+    }
 }
 
 impl Drop for GpuSwapchain {

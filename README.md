@@ -29,7 +29,7 @@ Wawona. The frozen sink `wwn-iland-iomfb` must not grow ABI guesses.
 |---|---|
 | `iomfb-abi` | Types, selectors, GPU present status |
 | `iomfb-sys` | `dlopen` / `dlsym` table |
-| `iomfb` | Safe API: display, swap, [`GpuSwapchain`](crates/iomfb/src/gpu.rs), [`TouchMap`](crates/iomfb/src/touch.rs) |
+| `iomfb` | Safe API: display, swap, [`GpuSwapchain`](crates/iomfb/src/gpu.rs), [`TouchSeat`](crates/iomfb/src/touch.rs) |
 | `iomfb-c` | C ABI (`include/iomfb.h`) for ObjC / Swift / tweaks |
 
 ObjC in `ffi/` creates IOSurfaces and wraps Metal textures. Policy stays
@@ -49,6 +49,8 @@ gpu.present_external(wayland_iosurface)?;
 ```
 
 TrollStore and tweaks call the same entry points through `include/iomfb.h`.
+Touches: `iomfb_touch_open` then `iomfb_touch_inject` (Wawona HID states
+0/1/2/3). This crate maps onto the present grid. It does not steal HID.
 
 ## Docs
 

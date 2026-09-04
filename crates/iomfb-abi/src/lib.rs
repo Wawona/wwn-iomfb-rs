@@ -11,7 +11,8 @@ pub use census::{export as export_meta, Export, EXPORTS};
 pub use exports::PUBLIC_EXPORTS;
 pub use gpu::{
     PixelFormat, PresentStatus, WaitOutcome, PIXEL_FORMAT_BGRA, PRESENT_LAYER, SWAPCHAIN_BUFFERS,
-    WAIT_INCOMPLETE_GUEST,
+    TOUCH_CANCEL, TOUCH_DOWN, TOUCH_MOTION, TOUCH_SLOTS, TOUCH_SPACE_HID, TOUCH_SPACE_NORMALIZED,
+    TOUCH_SPACE_PIXEL, TOUCH_SPACE_VIEW, TOUCH_UP, WAIT_INCOMPLETE_GUEST,
 };
 
 use core::fmt;

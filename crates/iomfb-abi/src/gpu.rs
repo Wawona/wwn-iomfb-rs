@@ -14,6 +14,21 @@ pub const SWAPCHAIN_BUFFERS: usize = 3;
 /// Present on layer 0. Desktop / full-frame apps use this layer.
 pub const PRESENT_LAYER: i32 = 0;
 
+/// Same slot mask Wawona Mode B HID uses (`touchId & 15`).
+pub const TOUCH_SLOTS: usize = 16;
+
+/// Wawona / UIKit HID sink states. 0=up, 1=down, 2=motion, 3=cancel.
+pub const TOUCH_UP: i32 = 0;
+pub const TOUCH_DOWN: i32 = 1;
+pub const TOUCH_MOTION: i32 = 2;
+pub const TOUCH_CANCEL: i32 = 3;
+
+/// Input space for [`crate`] touch inject. 0=normalized, 1=view, 2=pixel, 3=hid.
+pub const TOUCH_SPACE_NORMALIZED: i32 = 0;
+pub const TOUCH_SPACE_VIEW: i32 = 1;
+pub const TOUCH_SPACE_PIXEL: i32 = 2;
+pub const TOUCH_SPACE_HID: i32 = 3;
+
 /// `SwapWait` returned this after a successful set+end on guest 26.1.
 /// Present itself succeeded. Treat as incomplete wait, not a failed frame.
 pub const WAIT_INCOMPLETE_GUEST: i32 = -536_870_165; // 0xe000002b

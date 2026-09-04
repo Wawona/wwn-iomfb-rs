@@ -1,7 +1,9 @@
 //! C ABI for tipas. Names are ours, not Apple's header.
 //! Swap / display / restore are confirmed on iOS 26.1 / 23B85.
 
-use iomfb::{Display, Error, GpuSwapchain, TouchMap, Wait};
+use iomfb::{
+    Display, Error, GpuSwapchain, TouchMap, TouchSeat, TouchSpace, TouchState, Wait,
+};
 
 pub const IOMFB_C_OK: i32 = 0;
 pub const IOMFB_C_UNCONFIRMED: i32 = -1;
@@ -40,6 +42,25 @@ fn swapchain_mut<'a>(p: *mut core::ffi::c_void) -> Option<&'a mut GpuSwapchain> 
     } else {
         Some(unsafe { &mut *(p as *mut GpuSwapchain) })
     }
+}
+
+fn touch_mut<'a>(p: *mut core::ffi::c_void) -> Option<&'a mut TouchSeat> {
+    if p.is_null() {
+        None
+    } else {
+        Some(unsafe { &mut *(p as *mut TouchSeat) })
+    }
+}
+
+#[repr(C)]
+pub struct IomfbTouchEvent {
+    pub id: i32,
+    pub state: i32,
+    pub x: u32,
+    pub y: u32,
+    pub nx: f64,
+    pub ny: f64,
+    pub slot: u8,
 }
 
 #[repr(C)]
@@ -566,6 +587,140 @@ pub extern "C" fn iomfb_touch_map(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn iomfb_touch_open(
+    display: *mut core::ffi::c_void,
+    out: *mut *mut core::ffi::c_void,
+) -> i32 {
+    if out.is_null() {
+        return IOMFB_C_MISSING;
+    }
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match TouchSeat::from_display(d) {
+        Ok(seat) => {
+            unsafe { *out = Box::into_raw(Box::new(seat)) as *mut core::ffi::c_void };
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_touch_open_swapchain(
+    swapchain: *mut core::ffi::c_void,
+    out: *mut *mut core::ffi::c_void,
+) -> i32 {
+    if out.is_null() {
+        return IOMFB_C_MISSING;
+    }
+    let Some(sw) = swapchain_mut(swapchain) else {
+        return IOMFB_C_MISSING;
+    };
+    unsafe { *out = Box::into_raw(Box::new(sw.touch_seat())) as *mut core::ffi::c_void };
+    IOMFB_C_OK
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_touch_set_view(
+    touch: *mut core::ffi::c_void,
+    view_w: f64,
+    view_h: f64,
+) -> i32 {
+    let Some(seat) = touch_mut(touch) else {
+        return IOMFB_C_MISSING;
+    };
+    seat.map_mut().set_view(view_w, view_h);
+    IOMFB_C_OK
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_touch_set_dest(
+    touch: *mut core::ffi::c_void,
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+) -> i32 {
+    let Some(seat) = touch_mut(touch) else {
+        return IOMFB_C_MISSING;
+    };
+    seat.map_mut().set_dest(x, y, w, h);
+    IOMFB_C_OK
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_touch_set_rotation(touch: *mut core::ffi::c_void, degrees: i32) -> i32 {
+    let Some(seat) = touch_mut(touch) else {
+        return IOMFB_C_MISSING;
+    };
+    seat.map_mut().set_rotation(degrees);
+    IOMFB_C_OK
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_touch_inject(
+    touch: *mut core::ffi::c_void,
+    id: i32,
+    state: i32,
+    x: f64,
+    y: f64,
+    space: i32,
+    out: *mut IomfbTouchEvent,
+) -> i32 {
+    let Some(seat) = touch_mut(touch) else {
+        return IOMFB_C_MISSING;
+    };
+    let Some(st) = TouchState::from_i32(state) else {
+        return IOMFB_C_INCOMPATIBLE;
+    };
+    let Some(sp) = TouchSpace::from_i32(space) else {
+        return IOMFB_C_INCOMPATIBLE;
+    };
+    match seat.inject(id, st, x, y, sp) {
+        Some(ev) => {
+            if !out.is_null() {
+                unsafe {
+                    *out = IomfbTouchEvent {
+                        id: ev.id,
+                        state: ev.state.as_i32(),
+                        x: ev.x,
+                        y: ev.y,
+                        nx: ev.nx,
+                        ny: ev.ny,
+                        slot: ev.slot,
+                    };
+                }
+            }
+            IOMFB_C_OK
+        }
+        None => IOMFB_C_ABSENT,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_touch_active_count(touch: *mut core::ffi::c_void) -> i32 {
+    touch_mut(touch)
+        .map(|s| s.active_count() as i32)
+        .unwrap_or(IOMFB_C_MISSING)
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_touch_cancel_all(touch: *mut core::ffi::c_void) -> i32 {
+    let Some(seat) = touch_mut(touch) else {
+        return IOMFB_C_MISSING;
+    };
+    seat.cancel_all().len() as i32
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_touch_close(touch: *mut core::ffi::c_void) {
+    if !touch.is_null() {
+        unsafe { drop(Box::from_raw(touch as *mut TouchSeat)) };
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -573,6 +728,12 @@ mod tests {
     #[test]
     fn open_fails_closed_off_device() {
         let rc = iomfb_display_open_main(core::ptr::null_mut());
+        assert_eq!(rc, IOMFB_C_MISSING);
+    }
+
+    #[test]
+    fn touch_open_needs_display() {
+        let rc = iomfb_touch_open(core::ptr::null_mut(), core::ptr::null_mut());
         assert_eq!(rc, IOMFB_C_MISSING);
     }
 }
