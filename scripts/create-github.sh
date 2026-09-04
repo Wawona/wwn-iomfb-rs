@@ -29,7 +29,7 @@ EXISTING=$(gh api repos/Wawona/wwn-iomfb-rs/hooks --jq \
 if [[ -z "$EXISTING" ]]; then
   jq -n --arg url "$URL" \
     '{name:"web",active:true,events:["push"],config:{url:$url,content_type:"json",insecure_ssl:"0"}}' \
-    | gh api repos/Wawona/wwn-iomfb-rs/hooks --method POST --input -
+    | gh api repos/Wawona/wwn-iomfb-rs/hooks --method POST --input - >/dev/null
 fi
 
 while IFS='|' read -r title due; do
