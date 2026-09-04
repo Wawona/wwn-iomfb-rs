@@ -1,0 +1,20 @@
+[package]
+name = "iomfb"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Safe reconstructed IOMobileFramebuffer API. Grows only on confirmed ABI rows."
+
+[lib]
+name = "iomfb"
+
+[dependencies]
+iomfb-abi = { path = "../iomfb-abi" }
+iomfb-sys = { path = "../iomfb-sys" }
+
+[features]
+default = []
+apple-iomfb = ["iomfb-sys/apple-iomfb"]

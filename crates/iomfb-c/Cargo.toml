@@ -1,0 +1,21 @@
+[package]
+name = "iomfb-c"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "C ABI for ObjC/Swift TrollStore tipas. Reconstructed names only."
+
+[lib]
+name = "iomfb_c"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+iomfb = { path = "../iomfb" }
+iomfb-abi = { path = "../iomfb-abi" }
+
+[features]
+default = []
+apple-iomfb = ["iomfb/apple-iomfb"]

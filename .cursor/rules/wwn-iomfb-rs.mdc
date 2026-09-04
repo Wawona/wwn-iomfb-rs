@@ -1,0 +1,12 @@
+---
+description: wwn-iomfb-rs reconstructed IOMFB (no Apple code; guest DSC authority)
+alwaysApply: true
+---
+
+# wwn-iomfb-rs
+
+Guest vphone iOS 26.1 `IOMobileFramebuffer` is the authority. Confirm every
+prior claim in `docs/CLAIMS.md` with GhidraVibe before it becomes crate ABI.
+
+Never commit Apple headers, Ghidra paste, DSC, IPSW, or Disk.img.
+Never import this crate from L0-L2. Runtime is TrollStore tipa, not jailbreak.

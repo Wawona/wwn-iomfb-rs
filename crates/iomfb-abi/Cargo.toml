@@ -1,0 +1,12 @@
+[package]
+name = "iomfb-abi"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Reconstructed IOMobileFramebuffer types. Not an Apple header."
+
+[lib]
+name = "iomfb_abi"

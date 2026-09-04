@@ -1,0 +1,20 @@
+[package]
+name = "iomfb-sys"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "dlopen/dlsym table for reconstructed IOMFB. No Apple headers."
+
+[lib]
+name = "iomfb_sys"
+
+[dependencies]
+iomfb-abi = { path = "../iomfb-abi" }
+
+[features]
+default = []
+# Load symbols on this host. iOS and jailbroken vphone only at runtime.
+apple-iomfb = []

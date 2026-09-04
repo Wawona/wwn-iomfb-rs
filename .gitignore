@@ -1,0 +1,15 @@
+/target/
+/result
+.result
+.direnv
+.DS_Store
+*~
+*.o
+# Lab extracts. Never commit Apple binaries.
+/.vphone-re/
+/lab/
+*.dsc
+dyld_shared_cache_*
+IOMobileFramebuffer
+/extracted/
+/.agent-device/

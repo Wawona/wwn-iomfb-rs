@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/iomfb-abi",
+  "crates/iomfb-sys",
+  "crates/iomfb",
+  "crates/iomfb-c",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+license = "MIT"
+repository = "https://github.com/Wawona/wwn-iomfb-rs"
+authors = ["Alex Spaulding"]
+
+[profile.release]
+opt-level = 2
+lto = false
+panic = "abort"
+strip = "debuginfo"
