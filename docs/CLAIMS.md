@@ -42,14 +42,14 @@ Treat as pre-iOS-7 / iOS-7 unless Ghidra says they still exist on 26.1.
 | S2-open | `IOMobileFramebufferOpen(service, task, type, fb*)` same shape as `IOServiceOpen`, type `0` | gist-2015 / rms | confirmed |
 | S2-open-name | `OpenByName` with `primary` / `external` / `wireless` | gist-2015 | confirmed |
 | S2-getters | `GetMainDisplay`, `GetDisplaySize`, `GetDisplayArea`, `GetID`, `GetDotPitch`, `IsMainDisplay` | gist-2015 | confirmed |
-| S2-swap-begin | `SwapBegin(fb, token*)` | gist-2015 | unconfirmed |
-| S2-swap-end-1arg | `SwapEnd(fb)` 1-arg | gist-2015 | unconfirmed |
+| S2-swap-begin | `SwapBegin(fb, token*)` | gist-2015 | confirmed |
+| S2-swap-end-1arg | `SwapEnd(fb)` 1-arg | gist-2015 | confirmed |
 | S2-setlayer-3 | `SwapSetLayer` is 3-arg `(fb, layer, buffer)` with `CoreSurfaceBufferRef` or `IOSurfaceRef` | gist-2015 / rms | refuted |
-| S2-swap-wait | `SwapWait(fb, token, something)` | gist-2015 | unconfirmed |
-| S2-default | `GetLayerDefaultSurface(fb, surfaceId, buffer*)` | gist-nevyn | unconfirmed |
-| S2-color | `Get/SetGammaTable`, `SetContrast`, `Get/SetColorRemapMode`, `SetWhiteOnBlackMode`, `SetBrightnessCorrection`, `Get/SetMatrix` (name drifted) | gist-2015 | unconfirmed |
-| S2-power-yes | `EnableDisableVideoPowerSavings` enum Enabled=YES / Disabled=NO | gist-2015 | unconfirmed |
-| S2-types | `kIOMobileFramebufferError 0xE0000000`, gamma table `0xc0c` bytes, gamut matrix 9x s15.16 | gist-2015 | unconfirmed |
+| S2-swap-wait | `SwapWait(fb, token, something)` | gist-2015 | confirmed |
+| S2-default | `GetLayerDefaultSurface(fb, layer, buffer*)`. Layer, not surfaceId | gist-nevyn | confirmed |
+| S2-color | `Get/SetGammaTable` (0xc0c), `SetContrast`, `Get/SetColorRemapMode`, `SetWhiteOnBlackMode`, `SetBrightnessCorrection`, `Get/SetMatrix` | gist-2015 | confirmed |
+| S2-power-yes | Export exists. Polarity is int `0`=disable savings, not Cocoa YES/NO | gist-2015 | confirmed |
+| S2-types | IOReturn family `0xE000xxxx`. Gamma table `0xc0c`. Matrix IOConnect `0x48` bytes | gist-2015 | confirmed |
 | S2-setlayer-6 | `SwapSetLayer(fb, layer, IOSurface, CGRect bounds, CGRect frame, int flags)` 6-arg | screendump | confirmed |
 
 S2-setlayer-3 conflicts with S1-setlayer-6 / S2-setlayer-6. Guest 26.1 wins.
@@ -68,14 +68,14 @@ Verify each selector **and** the `SwapArg` fields on guest 26.1.
 | S3-sel-8 | 8 getDisplaySize (`width`/`height` uint32, not `CGSize`) | confirmed |
 | S3-sel-9 | 9 setVSyncNotifications (fn + userdata; 0 disables) | refuted |
 | S3-sel-12 | 12 requestPowerChange | confirmed |
-| S3-sel-15 | 15 setDebugFlags | unconfirmed |
-| S3-sel-17 | 17 setGammaTable | unconfirmed |
+| S3-sel-15 | 15 setDebugFlags (`0xf`) | confirmed |
+| S3-sel-17 | 17 setGammaTable (`0x11`, struct `0xc0c`) | confirmed |
 | S3-sel-18 | 18 isMainDisplay | confirmed |
-| S3-sel-19 | 19 setWhiteOnBlackMode | unconfirmed |
-| S3-sel-22 | 22 setDisplayDevice | unconfirmed |
-| S3-sel-27 | 27 getGammaTable | unconfirmed |
-| S3-sel-33 | 33 setVideoPowerSaving (was 32 before 4.0) | unconfirmed |
-| S3-sel-50 | 50 setBrightnessCorrection (was 49 before 8.0) | unconfirmed |
+| S3-sel-19 | 19 setWhiteOnBlackMode (`0x13`) | confirmed |
+| S3-sel-22 | 22 setDisplayDevice (`0x16`) | confirmed |
+| S3-sel-27 | 27 getGammaTable (`0x1b`) | confirmed |
+| S3-sel-33 | 33 setVideoPowerSaving (`0x21`; was 32 before 4.0) | confirmed |
+| S3-sel-50 | 50 setBrightnessCorrection (`0x32`; was 49 before 8.0) | confirmed |
 | S3-layers-4 | `NUM_LAYERS == 4` since iOS 7 | confirmed |
 | S3-swaparg | `SwapArg` is 0x560 at `fb+0x18`. Token +0x98, surface IDs +0x9c, dest/src +0xac, layer mask +0x14c, bgColor +0x154, gamma +0x158 | confirmed |
 | S3-vsync | Vsync is notify type 5 via EnableVSyncNotifications / sel 0x48, not wiki selector 9 | confirmed |
@@ -94,17 +94,17 @@ Lead, not authority. Confirm each selector on **iOS 26.1**.
 | S4-sel-8 | 8 GetDisplaySize | confirmed |
 | S4-sel-0xc | 0xc RequestPowerChange | confirmed |
 | S4-sel-0x12 | 0x12 IsMainDisplay | confirmed |
-| S4-sel-0x13 | 0x13 SetWhiteOnBlackMode | unconfirmed |
-| S4-sel-0x11 | 0x11 SetGammaTable struct size `0xc0c` | unconfirmed |
-| S4-sel-0x1b | 0x1b GetGammaTable | unconfirmed |
+| S4-sel-0x13 | 0x13 SetWhiteOnBlackMode | confirmed |
+| S4-sel-0x11 | 0x11 SetGammaTable struct size `0xc0c` | confirmed |
+| S4-sel-0x1b | 0x1b GetGammaTable | confirmed |
 | S4-sel-0x1d | 0x1d GetDisplayArea | confirmed |
 | S4-sel-0x1c | 0x1c GetDotPitch | confirmed |
 | S4-sel-0x21 | 0x21 EnableDisableVideoPowerSavings | confirmed |
-| S4-sel-0x32 | 0x32 SetBrightnessCorrection | unconfirmed |
-| S4-sel-0x33 | 0x33 SetColorRemapMode | unconfirmed |
-| S4-sel-0x39 | 0x39 GetColorRemapMode | unconfirmed |
+| S4-sel-0x32 | 0x32 SetBrightnessCorrection | confirmed |
+| S4-sel-0x33 | 0x33 SetColorRemapMode | confirmed |
+| S4-sel-0x39 | 0x39 GetColorRemapMode | confirmed |
 | S4-cancel-0x34 | 0x34 SwapCancel (1 scalar token). Matches Wawona "52" if decimal | confirmed |
-| S4-sel-0x14 | 0x14 SwapSignal | unconfirmed |
+| S4-sel-0x14 | 0x14 `_kern_SwapSignal` exists. Public `SwapSignal` is a stub (`0xe00002c2`/`0xe00002c7`) | confirmed |
 | S4-census | Census all `_kern_*` on guest. Bind public wrappers if they still exist | confirmed |
 
 ## S5. vphone CFW (guest may already be patched)
@@ -114,7 +114,7 @@ Lead, not authority. Confirm each selector on **iOS 26.1**.
 | S5-trampoline | Public `IOMobileFramebufferSwap*` are thin trampolines: `cbz x0; ldr xN,[x0,#slot]; cbz xN; braaz xN` onto `_kern_*` or `_virt_*` | confirmed |
 | S5-kern-end-5 | `_kern_SwapEnd` is userclient method 5 | confirmed |
 | S5-struct-size | Struct size is a kernel property: 26.1 base `0x560`, 26.4 `0x588`, iOS 27 native `0x6e0`. Userland 18.6.2 sent `0x514`, 26.0 sent `0x548` | confirmed |
-| S5-virt | `_virt_SwapEnd` does no IOConnect; in-process callback | unconfirmed |
+| S5-virt | `_virt_SwapEnd` does no IOConnect; in-process callback. 27 `_virt_*` T symbols on this guest | confirmed |
 | S5-force-kern | Force-kern rewrites trampoline first insn to `b _kern_Swap*`. Validated on iOS 27 VZ, not the TrollStore contract. Do not ship | unconfirmed |
 | S5-guest-patch | Our vphone 26.1 guest may already have the SwapEnd size patch. Diff vs stock 23B85 | refuted |
 

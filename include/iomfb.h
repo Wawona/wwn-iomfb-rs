@@ -83,6 +83,15 @@ int iomfb_touch_map(
     uint32_t *out_y);
 
 uint32_t iomfb_bound_export_count(void);
+void *iomfb_export(const char *name);
+int iomfb_export_is_stub(const char *name);
+int iomfb_call_unary(void *display, const char *name);
+int iomfb_call_int(void *display, const char *name, int32_t value);
+int iomfb_call_ptr(void *display, const char *name, void *ptr);
+int iomfb_set_white_on_black(void *display, int on);
+int iomfb_set_color_remap_mode(void *display, int32_t mode);
+int iomfb_get_color_remap_mode(void *display, int32_t *out);
+int iomfb_factory_calibration_begin(void *display);
 
 #ifdef __cplusplus
 }

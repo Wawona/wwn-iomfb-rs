@@ -42,6 +42,17 @@ cat > "$APP/Info.plist" <<EOF
   <string>15.0</string>
   <key>UILaunchStoryboardName</key>
   <string></string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>$BUNDLE</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>wawona-iomfb-metal</string>
+      </array>
+    </dict>
+  </array>
 </dict>
 </plist>
 EOF
@@ -67,6 +78,9 @@ cat > "$WORKDIR/ents.plist" <<'EOF'
   <array>
     <string>IOMobileFramebufferUserClient</string>
     <string>IOSurfaceRootUserClient</string>
+    <string>IOGPUDeviceUserClient</string>
+    <string>AGXDeviceUserClient</string>
+    <string>IOGPUMemoryInfoUserClient</string>
   </array>
 </dict>
 </plist>
@@ -75,7 +89,7 @@ EOF
 "$CC" -isysroot "$SDK" -arch arm64 -miphoneos-version-min=15.0 \
   -fobjc-arc -O2 \
   -framework CoreFoundation -framework IOSurface -framework Foundation \
-  -framework Metal -framework UIKit \
+  -framework Metal -framework UIKit -framework IOKit \
   -o "$APP/WawonaIomfbMetal" \
   "$HERE/examples/tipa-metal/main.m"
 

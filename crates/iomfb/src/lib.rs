@@ -1,15 +1,19 @@
-//! Safe IOMFB API. Swap / display / default-surface are confirmed on
-//! guest-class iOS 26.1 / 23B85 (`docs/ABI.md`). Other families still
-//! return [`Error::Unconfirmed`].
+//! Safe IOMFB API. Every public `IOMobileFramebuffer*` export is
+//! confirmed on guest-class iOS 26.1 / 23B85 (`docs/ABI.md`).
+//! Stubs (`SwapSignal`, `SwapSetUISubRegion`) return [`Error::Absent`].
 //!
 //! GPU present is zero-copy: Metal wraps an IOSurface, IOMFB swaps
 //! that same surface. See [`GpuSwapchain`] and `docs/GPU.md`.
 
+mod call;
+mod color;
+pub mod factory;
 mod gpu;
 mod present;
 mod surface;
 mod touch;
 
+pub use call::{export_is_stub, export_ptr};
 pub use gpu::{GpuFrame, GpuSwapchain};
 pub use iomfb_abi::{PixelFormat, PresentStatus, WaitOutcome, SWAPCHAIN_BUFFERS};
 pub use surface::{IoSurface, MetalDevice, MetalQueue, MetalTexture};
@@ -37,6 +41,8 @@ pub enum Error {
     NullSurface,
     /// Size or fourcc does not match the opened display.
     IncompatibleSurface,
+    /// Confirmed export, but this helper's GPR/FPR shape does not match.
+    WrongArity,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -57,7 +63,7 @@ impl Wait {
     }
 }
 
-fn table() -> Result<&'static Symbols> {
+pub(crate) fn table() -> Result<&'static Symbols> {
     static TABLE: OnceLock<Option<Symbols>> = OnceLock::new();
     TABLE
         .get_or_init(load)
@@ -65,7 +71,7 @@ fn table() -> Result<&'static Symbols> {
         .ok_or(Error::LoadFailed)
 }
 
-fn map_return(rc: i32) -> Result<()> {
+pub(crate) fn map_return(rc: i32) -> Result<()> {
     if rc == IOMFB_OK {
         Ok(())
     } else {

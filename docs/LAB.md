@@ -132,6 +132,10 @@ packages tipa open-jit <bundle> --device "vphone wawona-jb"
 Sock screenshot plus logs. No SpringBoard park in this crate. Exclusive is
 an IOMFB export or a documented "none exists" result.
 
+Metal tipa: `scripts/build-tipa-metal.sh`. Jailbreak CLI:
+`scripts/build-jb-cli.sh`, then `dd` to `/var/jb/usr/local/bin/iomfb-cli`.
+No ElleKit.
+
 ## 7. Sync
 
 ```bash

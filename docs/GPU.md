@@ -58,16 +58,22 @@ sock screenshot `.agent-device/test-artifacts/iomfb-metal-vphone.png`
 
 ```text
 bind 153/153
+iogpu_match IOGPU kr=0 count=1
+iogpu_match AppleParavirtGPU kr=0 count=1
+iogpu_match IOMobileFramebuffer kr=0 count=1
 display 1290x2796
 RequestPowerChange(1)=0
-create/import: backing_id=8
-has_metal=0 name=nil
-present: route=direct-iosurface copy=zero backing_id=8 has_metal=0 metal_ok=0 set=0 end=0 wait=-536870165 token=1236
+create/import: backing_id=28
+MTLCreateSystemDefaultDevice=Apple Paravirtual device GPU
+has_metal=1 name=Apple Paravirtual device GPU
+metal wrap+clear ok iosurface_id=28
+present: route=direct-iosurface copy=zero backing_id=28 has_metal=1 metal_ok=1 set=0 end=0 wait=0 token=1242
 ```
 
-`Metal.framework` and `AppleParavirtGPUMetalIOGPUFamily.bundle` are on
-the guest. `MTLCreateSystemDefaultDevice` was nil in the SSH-launched
-process. The crate still wraps + waits a Metal queue when a device
-exists. Present itself is set+end 0 on the same IOSurfaceID.
+UIKit launch is required. SSH `main()` without UIKit can see
+`has_metal=0` on the same guest. `IOGPUDevice` count stays 0;
+`IOGPU` + `AppleParavirtGPU` are the live services. Sock shot
+`.agent-device/test-artifacts/iomfb-metal-vphone.png` is full-frame
+magenta on the same IOSurfaceID. Do not add a physical-only branch.
 
 `iomfb_present_info.zero_copy` is 1 on this path.

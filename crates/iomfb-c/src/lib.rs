@@ -22,6 +22,7 @@ fn map_err(e: Error) -> i32 {
         Error::SurfaceCreateFailed => IOMFB_C_SURFACE,
         Error::NullSurface => IOMFB_C_NULL_SURFACE,
         Error::IncompatibleSurface => IOMFB_C_INCOMPATIBLE,
+        Error::WrongArity => IOMFB_C_UNCONFIRMED,
     }
 }
 
@@ -182,6 +183,142 @@ pub extern "C" fn iomfb_swap_cancel(display: *mut core::ffi::c_void, token: i32)
 #[no_mangle]
 pub extern "C" fn iomfb_bound_export_count() -> u32 {
     iomfb::bound_export_count() as u32
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_export(name: *const core::ffi::c_char) -> *mut core::ffi::c_void {
+    if name.is_null() {
+        return core::ptr::null_mut();
+    }
+    let Ok(s) = unsafe { core::ffi::CStr::from_ptr(name) }.to_str() else {
+        return core::ptr::null_mut();
+    };
+    iomfb::export_ptr(s).unwrap_or(core::ptr::null_mut())
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_export_is_stub(name: *const core::ffi::c_char) -> i32 {
+    if name.is_null() {
+        return 0;
+    }
+    let Ok(s) = unsafe { core::ffi::CStr::from_ptr(name) }.to_str() else {
+        return 0;
+    };
+    i32::from(iomfb::export_is_stub(s))
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_call_unary(
+    display: *mut core::ffi::c_void,
+    name: *const core::ffi::c_char,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    if name.is_null() {
+        return IOMFB_C_MISSING;
+    }
+    let Ok(s) = unsafe { core::ffi::CStr::from_ptr(name) }.to_str() else {
+        return IOMFB_C_MISSING;
+    };
+    match unsafe { d.call_unary(s) } {
+        Ok(rc) => rc,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_call_int(
+    display: *mut core::ffi::c_void,
+    name: *const core::ffi::c_char,
+    value: i32,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    if name.is_null() {
+        return IOMFB_C_MISSING;
+    }
+    let Ok(s) = unsafe { core::ffi::CStr::from_ptr(name) }.to_str() else {
+        return IOMFB_C_MISSING;
+    };
+    match unsafe { d.call_int(s, value) } {
+        Ok(rc) => rc,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_call_ptr(
+    display: *mut core::ffi::c_void,
+    name: *const core::ffi::c_char,
+    ptr: *mut core::ffi::c_void,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    if name.is_null() {
+        return IOMFB_C_MISSING;
+    }
+    let Ok(s) = unsafe { core::ffi::CStr::from_ptr(name) }.to_str() else {
+        return IOMFB_C_MISSING;
+    };
+    match unsafe { d.call_ptr(s, ptr) } {
+        Ok(rc) => rc,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_set_white_on_black(display: *mut core::ffi::c_void, on: i32) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.set_white_on_black(on != 0) {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_set_color_remap_mode(display: *mut core::ffi::c_void, mode: i32) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.set_color_remap_mode(mode) {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_get_color_remap_mode(
+    display: *mut core::ffi::c_void,
+    out: *mut i32,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.get_color_remap_mode() {
+        Ok(mode) => {
+            if !out.is_null() {
+                unsafe { *out = mode as i32 };
+            }
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_factory_calibration_begin(display: *mut core::ffi::c_void) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match unsafe { iomfb::factory::calibration_begin(d) } {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
 }
 
 #[no_mangle]

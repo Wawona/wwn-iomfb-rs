@@ -59,13 +59,34 @@ pub struct Symbols {
     pub swap_get_current: Option<GetU32Fn>,
     pub enable_vsync_notifications: Option<NotifyEnableFn>,
     pub disable_vsync_notifications: Option<NotifyDisableFn>,
+    pub set_white_on_black: Option<PowerIntFn>,
+    pub set_color_remap_mode: Option<PowerIntFn>,
+    pub get_color_remap_mode: Option<GetU32Fn>,
+    pub set_gamma_table: Option<unsafe extern "C" fn(DisplayRef, *const core::ffi::c_void) -> IomfbReturn>,
+    pub get_gamma_table: Option<unsafe extern "C" fn(DisplayRef, *mut core::ffi::c_void) -> IomfbReturn>,
+    pub set_brightness_correction: Option<PowerIntFn>,
+    pub ready_for_swap: Option<SwapCancelAllFn>,
+    pub wait_surface: Option<SwapCancelAllFn>,
+    pub set_droppable: Option<PowerIntFn>,
+    pub swap_cancel_all_get_current: Option<GetU32Fn>,
+    /// Parallel to `PUBLIC_EXPORTS`. Confirmed names only.
+    pub raw: Vec<Option<*mut core::ffi::c_void>>,
     /// Every public `IOMobileFramebuffer*` name that `dlsym` resolved.
     pub bound: usize,
 }
 
+unsafe impl Send for Symbols {}
+unsafe impl Sync for Symbols {}
+
 impl Symbols {
     pub fn empty() -> Self {
         Self::default()
+    }
+
+    /// Resolved pointer for a public export name, if `dlsym` found it.
+    pub fn raw_named(&self, name: &str) -> Option<*mut core::ffi::c_void> {
+        let i = iomfb_abi::PUBLIC_EXPORTS.iter().position(|&n| n == name)?;
+        self.raw.get(i).copied().flatten()
     }
 
     pub fn has_swap_family(&self) -> bool {
@@ -123,10 +144,23 @@ fn load_apple() -> Option<Symbols> {
             dlsym_fn(handle, "IOMobileFramebufferEnableVSyncNotifications");
         s.disable_vsync_notifications =
             dlsym_fn(handle, "IOMobileFramebufferDisableVSyncNotifications");
-        s.bound = PUBLIC_EXPORTS
+        s.set_white_on_black = dlsym_fn(handle, "IOMobileFramebufferSetWhiteOnBlackMode");
+        s.set_color_remap_mode = dlsym_fn(handle, "IOMobileFramebufferSetColorRemapMode");
+        s.get_color_remap_mode = dlsym_fn(handle, "IOMobileFramebufferGetColorRemapMode");
+        s.set_gamma_table = dlsym_fn(handle, "IOMobileFramebufferSetGammaTable");
+        s.get_gamma_table = dlsym_fn(handle, "IOMobileFramebufferGetGammaTable");
+        s.set_brightness_correction =
+            dlsym_fn(handle, "IOMobileFramebufferSetBrightnessCorrection");
+        s.ready_for_swap = dlsym_fn(handle, "IOMobileFramebufferReadyForSwap");
+        s.wait_surface = dlsym_fn(handle, "IOMobileFramebufferWaitSurface");
+        s.set_droppable = dlsym_fn(handle, "IOMobileFramebufferSetDroppable");
+        s.swap_cancel_all_get_current =
+            dlsym_fn(handle, "IOMobileFramebufferSwapCancelAllGetCurrent");
+        s.raw = PUBLIC_EXPORTS
             .iter()
-            .filter(|name| dlsym_raw(handle, name).is_some())
-            .count();
+            .map(|name| dlsym_raw(handle, name))
+            .collect();
+        s.bound = s.raw.iter().filter(|p| p.is_some()).count();
         Some(s)
     }
 }

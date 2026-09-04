@@ -3,9 +3,11 @@
 //! Nothing here is an Apple header. Selectors and arities start
 //! `Unconfirmed` until `docs/ABI.md` records a guest 26.1 Ghidra pass.
 
+mod census;
 mod exports;
 mod gpu;
 
+pub use census::{export as export_meta, Export, EXPORTS};
 pub use exports::PUBLIC_EXPORTS;
 pub use gpu::{
     PixelFormat, PresentStatus, WaitOutcome, PIXEL_FORMAT_BGRA, PRESENT_LAYER, SWAPCHAIN_BUFFERS,
@@ -60,7 +62,24 @@ pub mod lead_selector {
     pub const IS_MAIN_DISPLAY: u32 = 0x12;
     /// aiaf writes `0x34`. Wawona notes wrote decimal 52. Same number.
     pub const SWAP_CANCEL: u32 = 0x34;
+    pub const SET_DEBUG_FLAGS: u32 = 0xf;
+    pub const SET_GAMMA_TABLE: u32 = 0x11;
+    pub const SET_WHITE_ON_BLACK: u32 = 0x13;
+    pub const SET_DISPLAY_DEVICE: u32 = 0x16;
+    pub const GET_GAMMA_TABLE: u32 = 0x1b;
+    pub const SET_BRIGHTNESS_CORRECTION: u32 = 0x32;
+    pub const SET_COLOR_REMAP: u32 = 0x33;
+    pub const GET_COLOR_REMAP: u32 = 0x39;
+    pub const GET_BLOCK: u32 = 0xaa;
+    pub const KERNEL_TESTS: u32 = 0x38;
+    pub const HDCP_SEND: u32 = 0x2f;
+    pub const HDCP_REPLY: u32 = 0x30;
+    pub const FACTORY_PORTAL: u32 = 0x4b;
+    pub const COPY_LAYER_DISPLAYED: u32 = 0x53;
 }
+
+/// Guest Get/SetGammaTable struct size.
+pub const GAMMA_TABLE_SIZE: usize = 0xc0c;
 
 /// `_kern_SwapEnd` struct size on guest 26.1 / 23B85. Lives at `fb+0x18`.
 pub const SWAP_ARG_SIZE: usize = 0x560;
@@ -260,6 +279,26 @@ pub const CLAIMS: &[Claim] = &[
         status: ClaimStatus::Confirmed,
         summary: "Public Swap* are cbz/ldr/braaz trampolines",
     },
+    Claim {
+        id: "S2-color",
+        status: ClaimStatus::Confirmed,
+        summary: "Gamma / remap / white-on-black / matrix still exist",
+    },
+    Claim {
+        id: "S3-sel-17",
+        status: ClaimStatus::Confirmed,
+        summary: "SetGammaTable is selector 0x11",
+    },
+    Claim {
+        id: "S5-virt",
+        status: ClaimStatus::Confirmed,
+        summary: "_virt_* is in-process, no IOConnect",
+    },
+    Claim {
+        id: "S4-sel-0x14",
+        status: ClaimStatus::Confirmed,
+        summary: "Public SwapSignal is a stub; kern sel 0x14 exists",
+    },
 ];
 
 pub fn claim(id: &str) -> Option<&'static Claim> {
@@ -279,6 +318,9 @@ mod tests {
             "S3-layers-4",
             "S1-swap-end-1arg",
             "S4-cancel-0x34",
+            "S2-color",
+            "S3-sel-17",
+            "S5-virt",
         ] {
             let c = claim(id).expect(id);
             assert_ne!(c.status, ClaimStatus::Unconfirmed, "{id}");

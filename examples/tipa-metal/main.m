@@ -3,6 +3,7 @@
  */
 #import <CoreFoundation/CoreFoundation.h>
 #import <Foundation/Foundation.h>
+#import <IOKit/IOKitLib.h>
 #import <IOSurface/IOSurfaceRef.h>
 #import <Metal/Metal.h>
 #import <UIKit/UIKit.h>
@@ -35,6 +36,33 @@ static void *must_dlsym(void *h, const char *n) {
     return p;
 }
 
+static void probe_gpu_services(void) {
+    const char *names[] = {
+        "IOGPUDevice",
+        "IOGPU",
+        "AGXAccelerator",
+        "AppleParavirtGPU",
+        "AppleParavirtGPUDevice",
+        "IOMobileFramebuffer",
+        NULL,
+    };
+    for (int i = 0; names[i]; i++) {
+        io_iterator_t it = IO_OBJECT_NULL;
+        CFDictionaryRef match = IOServiceMatching(names[i]);
+        kern_return_t kr = IOServiceGetMatchingServices(kIOMainPortDefault, match, &it);
+        int n = 0;
+        if (kr == KERN_SUCCESS && it) {
+            io_object_t obj;
+            while ((obj = IOIteratorNext(it)) != IO_OBJECT_NULL) {
+                n++;
+                IOObjectRelease(obj);
+            }
+            IOObjectRelease(it);
+        }
+        fprintf(stderr, "iogpu_match %s kr=%d count=%d\n", names[i], (int)kr, n);
+    }
+}
+
 static id<MTLDevice> pick_metal_device(void) {
     id<MTLDevice> sys = MTLCreateSystemDefaultDevice();
     fprintf(stderr, "MTLCreateSystemDefaultDevice=%s\n",
@@ -58,6 +86,7 @@ static int present_metal_frame(void) {
         }
     }
     fprintf(stderr, "bind %zu/%zu\n", bound, n);
+    probe_gpu_services();
 
     FnGet get_main = must_dlsym(lib, "IOMobileFramebufferGetMainDisplay");
     FnGet get_sec = must_dlsym(lib, "IOMobileFramebufferGetSecondaryDisplay");
