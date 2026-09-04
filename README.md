@@ -52,6 +52,17 @@ TrollStore and tweaks call the same entry points through `include/iomfb.h`.
 Touches: `iomfb_touch_open` then `iomfb_touch_inject` (Wawona HID states
 0/1/2/3). This crate maps onto the present grid. It does not steal HID.
 
+Heavy GPU bench tipa (MIT, Metal shaders + iomfb-c):
+
+```bash
+BUILD=1 ./scripts/build-tipa-bench.sh
+# packages tipa install …/WawonaIomfbBench.tipa --device "vphone wawona-jb"
+# uiopen wawona-iomfb-bench://
+```
+
+One finger orbits. Extra fingers are lights. Pinch changes march load.
+HUD: FPS, GPU ms, CPU ms, thermal, CPU %, load, touches, steps.
+
 ## Docs
 
 - [`docs/GPU.md`](docs/GPU.md): zero-copy, consumers, evidence

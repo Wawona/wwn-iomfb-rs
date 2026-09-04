@@ -80,3 +80,10 @@ UIKit launch is required. SSH `main()` without UIKit can see
 magenta on the same IOSurfaceID. Do not add a physical-only branch.
 
 `iomfb_present_info.zero_copy` is 1 on this path.
+
+Heavy Metal bench tipa: `scripts/build-tipa-bench.sh` (bundle
+`com.aspauldingcode.wawona.iomfb.bench`). Links `iomfb-c`. Logs
+`/tmp/iomfb-bench.log` (FPS, GPU ms, CPU ms, `NSProcessInfo` thermal,
+host CPU load). Same IOSurfaceID from Metal encode to `SwapSetLayer`.
+On vphone the paravirt GPU can drop to about 10 FPS at 1290x2796 and
+stall guest SSH. That is the load test working. Pinch down to recover.
