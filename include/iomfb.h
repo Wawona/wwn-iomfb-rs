@@ -68,7 +68,12 @@ int iomfb_swapchain_present_external(
     void *swapchain,
     void *surface,
     iomfb_present_info *out);
+int iomfb_swapchain_clear(void *swapchain, float r, float g, float b, float a);
 void iomfb_swapchain_close(void *swapchain);
+int iomfb_display_id(void *display, uint32_t *out);
+int iomfb_display_is_main(void *display, uint32_t *out);
+int iomfb_swap_cancel_all(void *display);
+int iomfb_swap_get_current(void *display, uint32_t *out);
 
 int iomfb_touch_map(
     void *display,

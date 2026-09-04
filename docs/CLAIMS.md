@@ -18,18 +18,18 @@ Cite `docs/SOURCES.md`. Do not copy gist or wiki C.
 | S1-size-cgsize | `GetDisplaySize(fb, CGSize*)` | wwn-h | confirmed |
 | S1-swap-begin | `SwapBegin(fb, int *token)` | wwn-m | confirmed |
 | S1-swap-end-1arg | Public `SwapEnd(fb)` is 1-arg. Token only from Begin | wwn-m | confirmed |
-| S1-swap-wait-0 | `SwapWait(fb, token, options)` with `options==0` meaning until displayed | wwn-m | unconfirmed |
+| S1-swap-wait-0 | `SwapWait(fb, token, options)` with `options==0` meaning until displayed | wwn-m | confirmed |
 | S1-setlayer-6 | `SwapSetLayer(fb, layer, IOSurface, src CGRect, dst CGRect, flags)` is 6-arg. Layer `0`, full-rect src/dst, flags `0` | wwn-m / screendump | confirmed |
 | S1-default-surface | `GetLayerDefaultSurface(fb, layer, IOSurface*)`. Layer `0` is SpringBoard CA. Restore-only. Never a render target | wwn-m | confirmed |
-| S1-power-save-0 | `EnableDisableVideoPowerSavings(fb, int)`. Open passes `0` (disable savings). Restore passes `1` | wwn-m | unconfirmed |
-| S1-power-change-1 | `RequestPowerChange(fb, int)`. Open passes `1` (on) | wwn-m | unconfirmed |
+| S1-power-save-0 | `EnableDisableVideoPowerSavings(fb, int)`. Open passes `0` (disable savings). Restore passes `1` | wwn-m | confirmed |
+| S1-power-change-1 | `RequestPowerChange(fb, int)`. Open passes `1` (on) | wwn-m | confirmed |
 | S1-layers-3 | `WWN_IOMFB_LAYER_COUNT == 3`. Present only our BGRA (`BGRA` / `ARGB`) IOSurfaces | wwn-h | refuted |
 | S1-restore | Restore: Begin + SetLayer default (or NULL + zero rects) + End + Wait | wwn-m | confirmed |
-| S1-hold | Exclusive hold is not an IOMFB export. Re-present last surface if no client swap for ~12 ms. `SwapWait` every commit | wwn-rs | unconfirmed |
-| S1-sel | Userclient selectors 3 default, 4 begin, 5 end, 6 wait, 8 size, 9 vsync, 12 power, 52 cancel (per-token) | wiki / aiaf / wwn-h | confirmed |
+| S1-hold | Exclusive hold is not an IOMFB export. Re-present last surface if no client swap for ~12 ms. `SwapWait` every commit | wwn-rs | confirmed |
+| S1-sel | Userclient selectors 3 default, 4 begin, 5 end, 6 wait, 8 size, 9 vsync (notify type 5 / sel 0x48), 12 power, 52 cancel (per-token) | wiki / aiaf / wwn-h | confirmed |
 | S1-cancel-absent | `SwapCancel` is not in the Wawona trampoline | wwn-m | confirmed |
 | S1-iland-bind | Weston DRM page-flip -> `wwn_modeb_desktop_present_iosurface` -> same swap path | wwn-present | unconfirmed |
-| S1-ents | Tipa ents: `com.apple.private.IOMobileFramebuffer`, `IOMobileFramebufferUserClient` + `IOSurfaceRootUserClient`, `no-sandbox` / `platform-application`, `allow-explicit-graphics-priority`. Never IOWatchdog | fbvnc / Wawona tipa rule | unconfirmed |
+| S1-ents | Tipa ents: `com.apple.private.IOMobileFramebuffer`, `IOMobileFramebufferUserClient` + `IOSurfaceRootUserClient`, `no-sandbox` / `platform-application`, `allow-explicit-graphics-priority`. Never IOWatchdog | fbvnc / Wawona tipa rule | confirmed |
 
 HID park in `WWNModeBDisplayClaim.m` is **not** IOMFB. Out of this crate.
 
@@ -39,9 +39,9 @@ Treat as pre-iOS-7 / iOS-7 unless Ghidra says they still exist on 26.1.
 
 | Id | Claim | Source | Status |
 |---|---|---|---|
-| S2-open | `IOMobileFramebufferOpen(service, task, type, fb*)` same shape as `IOServiceOpen`, type `0` | gist-2015 / rms | unconfirmed |
-| S2-open-name | `OpenByName` with `primary` / `external` / `wireless` | gist-2015 | unconfirmed |
-| S2-getters | `GetMainDisplay`, `GetDisplaySize`, `GetDisplayArea`, `GetID`, `GetDotPitch`, `IsMainDisplay` | gist-2015 | unconfirmed |
+| S2-open | `IOMobileFramebufferOpen(service, task, type, fb*)` same shape as `IOServiceOpen`, type `0` | gist-2015 / rms | confirmed |
+| S2-open-name | `OpenByName` with `primary` / `external` / `wireless` | gist-2015 | confirmed |
+| S2-getters | `GetMainDisplay`, `GetDisplaySize`, `GetDisplayArea`, `GetID`, `GetDotPitch`, `IsMainDisplay` | gist-2015 | confirmed |
 | S2-swap-begin | `SwapBegin(fb, token*)` | gist-2015 | unconfirmed |
 | S2-swap-end-1arg | `SwapEnd(fb)` 1-arg | gist-2015 | unconfirmed |
 | S2-setlayer-3 | `SwapSetLayer` is 3-arg `(fb, layer, buffer)` with `CoreSurfaceBufferRef` or `IOSurfaceRef` | gist-2015 / rms | refuted |
@@ -64,21 +64,21 @@ Verify each selector **and** the `SwapArg` fields on guest 26.1.
 | S3-sel-4 | 4 swapBegin -> swap token | confirmed |
 | S3-sel-5 | 5 swapEnd <- `IOMobileFramebufferSwapArg` struct | confirmed |
 | S3-sel-6 | 6 swapWait (token, waitOptions, timeout_millis since 4.2) | confirmed |
-| S3-sel-7 | 7 getId | unconfirmed |
+| S3-sel-7 | 7 getId | confirmed |
 | S3-sel-8 | 8 getDisplaySize (`width`/`height` uint32, not `CGSize`) | confirmed |
-| S3-sel-9 | 9 setVSyncNotifications (fn + userdata; 0 disables) | unconfirmed |
-| S3-sel-12 | 12 requestPowerChange | unconfirmed |
+| S3-sel-9 | 9 setVSyncNotifications (fn + userdata; 0 disables) | refuted |
+| S3-sel-12 | 12 requestPowerChange | confirmed |
 | S3-sel-15 | 15 setDebugFlags | unconfirmed |
 | S3-sel-17 | 17 setGammaTable | unconfirmed |
-| S3-sel-18 | 18 isMainDisplay | unconfirmed |
+| S3-sel-18 | 18 isMainDisplay | confirmed |
 | S3-sel-19 | 19 setWhiteOnBlackMode | unconfirmed |
 | S3-sel-22 | 22 setDisplayDevice | unconfirmed |
 | S3-sel-27 | 27 getGammaTable | unconfirmed |
 | S3-sel-33 | 33 setVideoPowerSaving (was 32 before 4.0) | unconfirmed |
 | S3-sel-50 | 50 setBrightnessCorrection (was 49 before 8.0) | unconfirmed |
 | S3-layers-4 | `NUM_LAYERS == 4` since iOS 7 | confirmed |
-| S3-swaparg | `SwapArg`: timestamps[3], imageSources[16], surfaceID[N], src bounds, dst frames, flags, bgColor, gamma index, rotation. Size grew | unconfirmed |
-| S3-vsync | Vsync is `IOConnectSetNotificationPort` plus selector 9; payload is `IOMobileFramebufferTimingData` | unconfirmed |
+| S3-swaparg | `SwapArg` is 0x560 at `fb+0x18`. Token +0x98, surface IDs +0x9c, dest/src +0xac, layer mask +0x14c, bgColor +0x154, gamma +0x158 | confirmed |
+| S3-vsync | Vsync is notify type 5 via EnableVSyncNotifications / sel 0x48, not wiki selector 9 | confirmed |
 
 ## S4. aiaf `_kern_*` map (macOS Sonoma 14.3)
 
@@ -90,22 +90,22 @@ Lead, not authority. Confirm each selector on **iOS 26.1**.
 | S4-sel-4 | 4 SwapBegin (scalar out token) | confirmed |
 | S4-sel-5 | 5 SwapEnd struct. aiaf size `0x4fc` on Sonoma. Conflicts with vphone 0x560/0x588/0x6e0 | refuted |
 | S4-sel-6 | 6 SwapWait and SwapWaitWithTimeout (3 scalars) | confirmed |
-| S4-sel-7 | 7 GetID | unconfirmed |
+| S4-sel-7 | 7 GetID | confirmed |
 | S4-sel-8 | 8 GetDisplaySize | confirmed |
-| S4-sel-0xc | 0xc RequestPowerChange | unconfirmed |
-| S4-sel-0x12 | 0x12 IsMainDisplay | unconfirmed |
+| S4-sel-0xc | 0xc RequestPowerChange | confirmed |
+| S4-sel-0x12 | 0x12 IsMainDisplay | confirmed |
 | S4-sel-0x13 | 0x13 SetWhiteOnBlackMode | unconfirmed |
 | S4-sel-0x11 | 0x11 SetGammaTable struct size `0xc0c` | unconfirmed |
 | S4-sel-0x1b | 0x1b GetGammaTable | unconfirmed |
-| S4-sel-0x1d | 0x1d GetDisplayArea | unconfirmed |
-| S4-sel-0x1c | 0x1c GetDotPitch | unconfirmed |
+| S4-sel-0x1d | 0x1d GetDisplayArea | confirmed |
+| S4-sel-0x1c | 0x1c GetDotPitch | confirmed |
 | S4-sel-0x21 | 0x21 EnableDisableVideoPowerSavings | confirmed |
 | S4-sel-0x32 | 0x32 SetBrightnessCorrection | unconfirmed |
 | S4-sel-0x33 | 0x33 SetColorRemapMode | unconfirmed |
 | S4-sel-0x39 | 0x39 GetColorRemapMode | unconfirmed |
 | S4-cancel-0x34 | 0x34 SwapCancel (1 scalar token). Matches Wawona "52" if decimal | confirmed |
 | S4-sel-0x14 | 0x14 SwapSignal | unconfirmed |
-| S4-census | Census all `_kern_*` on guest. Bind public wrappers if they still exist | unconfirmed |
+| S4-census | Census all `_kern_*` on guest. Bind public wrappers if they still exist | confirmed |
 
 ## S5. vphone CFW (guest may already be patched)
 
@@ -126,9 +126,9 @@ Lead, not authority. Confirm each selector on **iOS 26.1**.
 | S6-layer-count | 3 (Wawona) vs 4 (wiki iOS 7+) | confirmed |
 | S6-swapend-shape | Public `SwapEnd(fb)` vs `_kern_SwapEnd` struct (0x4fc / 0x560 / 0x588) | confirmed |
 | S6-size-type | `GetDisplaySize` returns `CGSize` vs `{uint32 w,h}` | confirmed |
-| S6-power-polarity | gist YES=enabled vs Wawona `0`=disable savings | unconfirmed |
+| S6-power-polarity | gist YES=enabled vs Wawona `0`=disable savings | confirmed |
 | S6-cancel-sel | SwapCancel "52" vs aiaf `0x34` | confirmed |
-| S6-exclusive | Whether a real exclusive / disable-other-clients export exists | unconfirmed |
+| S6-exclusive | Whether a real exclusive / disable-other-clients export exists | confirmed |
 
 ## Verification bar
 

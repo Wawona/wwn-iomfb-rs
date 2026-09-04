@@ -50,11 +50,20 @@ pub mod lead_selector {
     pub const SWAP_WAIT: u32 = 6;
     pub const GET_ID: u32 = 7;
     pub const GET_DISPLAY_SIZE: u32 = 8;
-    pub const SET_VSYNC: u32 = 9;
+    /// Wiki sel 9 (`setVSyncNotifications`) is refuted. Vsync is notify type 5 / sel 0x48.
     pub const REQUEST_POWER: u32 = 12;
+    pub const ENABLE_DISABLE_POWER_SAVINGS: u32 = 0x21;
+    pub const NOTIFICATIONS: u32 = 0x48;
+    pub const SWAP_GET_CURRENT: u32 = 0x5b;
+    pub const SWAP_CANCEL_ALL: u32 = 0x51;
+    pub const SWAP_CANCEL_ALL_GET_CURRENT: u32 = 0x5c;
+    pub const IS_MAIN_DISPLAY: u32 = 0x12;
     /// aiaf writes `0x34`. Wawona notes wrote decimal 52. Same number.
     pub const SWAP_CANCEL: u32 = 0x34;
 }
+
+/// `_kern_SwapEnd` struct size on guest 26.1 / 23B85. Lives at `fb+0x18`.
+pub const SWAP_ARG_SIZE: usize = 0x560;
 
 /// Public `dlsym` names we care about first.
 pub const SWAP_FAMILY: &[&str] = &[
@@ -72,8 +81,20 @@ pub const SWAP_FAMILY: &[&str] = &[
 pub const POWER_FAMILY: &[&str] = &[
     "IOMobileFramebufferEnableDisableVideoPowerSavings",
     "IOMobileFramebufferRequestPowerChange",
-    "IOMobileFramebufferSetVsyncNotifications",
+    "IOMobileFramebufferEnableVSyncNotifications",
+    "IOMobileFramebufferDisableVSyncNotifications",
+    "IOMobileFramebufferGetVSyncRunLoopSource",
 ];
+
+/// Notify type stuffed into Enable/DisableNotifications (sel 0x48).
+pub mod notify_type {
+    pub const HOT_PLUG: i32 = 0;
+    pub const POWER: i32 = 1;
+    pub const HDCP: i32 = 2;
+    pub const CRC: i32 = 4;
+    pub const VSYNC: i32 = 5;
+    pub const NEED_SWAP: i32 = 6;
+}
 
 /// Wawona Mode B used 3. Guest `_kern_SwapSetLayer` is `cmp w1, #4` (layers 0-3).
 pub const LAYER_COUNT_WAWONA_LEAD: u32 = 3;
@@ -181,8 +202,8 @@ pub const CLAIMS: &[Claim] = &[
     },
     Claim {
         id: "S1-swap-wait-0",
-        status: ClaimStatus::Unconfirmed,
-        summary: "SwapWait options 0 = until displayed",
+        status: ClaimStatus::Confirmed,
+        summary: "SwapWait options 0 = until displayed (guest 0xe000002b is incomplete)",
     },
     Claim {
         id: "S1-setlayer-6",
@@ -196,13 +217,18 @@ pub const CLAIMS: &[Claim] = &[
     },
     Claim {
         id: "S1-power-save-0",
-        status: ClaimStatus::Unconfirmed,
+        status: ClaimStatus::Confirmed,
         summary: "EnableDisableVideoPowerSavings(0) disables savings",
     },
     Claim {
         id: "S1-power-change-1",
-        status: ClaimStatus::Unconfirmed,
+        status: ClaimStatus::Confirmed,
         summary: "RequestPowerChange(1) means on",
+    },
+    Claim {
+        id: "S1-hold",
+        status: ClaimStatus::Refuted,
+        summary: "Exclusive disable-others IOMFB export exists",
     },
     Claim {
         id: "S1-layers-3",

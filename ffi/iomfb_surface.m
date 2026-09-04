@@ -143,3 +143,52 @@ void *iomfb_glue_metal_texture_wrap(void *device, void *surface, int render_targ
     id<MTLTexture> tex = [dev newTextureWithDescriptor:td iosurface:s plane:0];
     return (__bridge_retained void *)tex;
 }
+
+void *iomfb_glue_metal_queue(void *device) {
+    if (!device) {
+        return NULL;
+    }
+    id<MTLDevice> dev = (__bridge id<MTLDevice>)device;
+    return (__bridge_retained void *)[dev newCommandQueue];
+}
+
+int iomfb_glue_metal_wait(void *queue) {
+    if (!queue) {
+        return -1;
+    }
+    id<MTLCommandQueue> q = (__bridge id<MTLCommandQueue>)queue;
+    id<MTLCommandBuffer> buf = [q commandBuffer];
+    if (!buf) {
+        return -1;
+    }
+    [buf commit];
+    [buf waitUntilCompleted];
+    return 0;
+}
+
+/* GPU clear into the IOSurface-backed texture. Same backing. No blit. */
+int iomfb_glue_metal_clear(
+    void *queue, void *texture, float r, float g, float b, float a) {
+    if (!queue || !texture) {
+        return -1;
+    }
+    id<MTLCommandQueue> q = (__bridge id<MTLCommandQueue>)queue;
+    id<MTLTexture> tex = (__bridge id<MTLTexture>)texture;
+    id<MTLCommandBuffer> buf = [q commandBuffer];
+    if (!buf) {
+        return -1;
+    }
+    MTLRenderPassDescriptor *pass = [MTLRenderPassDescriptor renderPassDescriptor];
+    pass.colorAttachments[0].texture = tex;
+    pass.colorAttachments[0].loadAction = MTLLoadActionClear;
+    pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+    pass.colorAttachments[0].clearColor = MTLClearColorMake(r, g, b, a);
+    id<MTLRenderCommandEncoder> enc = [buf renderCommandEncoderWithDescriptor:pass];
+    if (!enc) {
+        return -1;
+    }
+    [enc endEncoding];
+    [buf commit];
+    [buf waitUntilCompleted];
+    return 0;
+}

@@ -14,3 +14,5 @@ Runtime consumers: TrollStore tipa, jailbreak tweak, later Wawona
 Mode B Desktop. Not App Store. ElleKit is not this crate.
 GPU present is IOSurface zero-copy (Metal wrap of the same surface).
 Do not blit on the Desktop path. HID park is Wawona, not IOMFB.
+vphone `wawona-jb` is the proof device. Do not defer Metal or IOMFB
+to a physical iPhone.

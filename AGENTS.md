@@ -8,7 +8,7 @@ dyld cache image `IOMobileFramebuffer`.
 - Write new logic in Rust. ObjC is `ffi/` trampoline only
   (IOSurface create + Metal wrap). Present policy stays in Rust.
 - GPU present is zero-copy IOSurface. Do not add a blit on the
-  Desktop path. See `docs/GPU.md`.
+  Desktop path. See `docs/GPU.md`. vphone is the proof device.
 - Seed and update `docs/CLAIMS.md` / `docs/ABI.md`. No crate API from an
   unconfirmed row.
 - Confirm or refute every prior claim on the guest image (GhidraVibe,

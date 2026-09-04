@@ -12,7 +12,7 @@ mod touch;
 
 pub use gpu::{GpuFrame, GpuSwapchain};
 pub use iomfb_abi::{PixelFormat, PresentStatus, WaitOutcome, SWAPCHAIN_BUFFERS};
-pub use surface::{IoSurface, MetalDevice, MetalTexture};
+pub use surface::{IoSurface, MetalDevice, MetalQueue, MetalTexture};
 pub use touch::TouchMap;
 
 use iomfb_abi::{DisplayRef, DisplaySize, IOMFB_OK};
@@ -176,13 +176,43 @@ impl Display {
         map_return(unsafe { f(self.raw, 1) })
     }
 
-    /// Polarity of `enabled` is still unconfirmed. Bind only.
+    /// Confirmed: `0` disables savings (full panel power). `1` enables savings.
     pub fn set_video_power_savings(&self, enabled: bool) -> Result<()> {
         let f = self
             .symbols
             .enable_disable_video_power_savings
             .ok_or(Error::MissingSymbol)?;
         map_return(unsafe { f(self.raw, i32::from(enabled)) })
+    }
+
+    /// Confirmed selector 7. Cached on the object.
+    pub fn id(&self) -> Result<u32> {
+        let f = self.symbols.get_id.ok_or(Error::MissingSymbol)?;
+        let mut id = 0u32;
+        map_return(unsafe { f(self.raw, &mut id) })?;
+        Ok(id)
+    }
+
+    /// Confirmed selector 0x12.
+    pub fn is_main(&self) -> Result<bool> {
+        let f = self.symbols.is_main_display.ok_or(Error::MissingSymbol)?;
+        let mut v = 0u32;
+        map_return(unsafe { f(self.raw, &mut v) })?;
+        Ok(v != 0)
+    }
+
+    /// Confirmed selector 0x51. Cancels this connection's swaps, not a display grab.
+    pub fn swap_cancel_all(&self) -> Result<()> {
+        let f = self.symbols.swap_cancel_all.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(self.raw) })
+    }
+
+    /// Confirmed selector 0x5b.
+    pub fn swap_get_current(&self) -> Result<u32> {
+        let f = self.symbols.swap_get_current.ok_or(Error::MissingSymbol)?;
+        let mut token = 0u32;
+        map_return(unsafe { f(self.raw, &mut token) })?;
+        Ok(token)
     }
 }
 

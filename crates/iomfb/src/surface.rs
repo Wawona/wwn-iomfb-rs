@@ -28,6 +28,16 @@ extern "C" {
         surface: *mut core::ffi::c_void,
         render_target: i32,
     ) -> *mut core::ffi::c_void;
+    fn iomfb_glue_metal_queue(device: *mut core::ffi::c_void) -> *mut core::ffi::c_void;
+    fn iomfb_glue_metal_wait(queue: *mut core::ffi::c_void) -> i32;
+    fn iomfb_glue_metal_clear(
+        queue: *mut core::ffi::c_void,
+        texture: *mut core::ffi::c_void,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
+    ) -> i32;
 }
 
 #[cfg(not(target_vendor = "apple"))]
@@ -70,6 +80,22 @@ mod stub {
         _: i32,
     ) -> *mut core::ffi::c_void {
         core::ptr::null_mut()
+    }
+    pub unsafe fn iomfb_glue_metal_queue(_: *mut core::ffi::c_void) -> *mut core::ffi::c_void {
+        core::ptr::null_mut()
+    }
+    pub unsafe fn iomfb_glue_metal_wait(_: *mut core::ffi::c_void) -> i32 {
+        -1
+    }
+    pub unsafe fn iomfb_glue_metal_clear(
+        _: *mut core::ffi::c_void,
+        _: *mut core::ffi::c_void,
+        _: f32,
+        _: f32,
+        _: f32,
+        _: f32,
+    ) -> i32 {
+        -1
     }
 }
 
@@ -144,7 +170,7 @@ impl Drop for IoSurface {
     }
 }
 
-/// System Metal device. Null when Metal is unavailable (vphone, Linux).
+/// System Metal device. Null only when the guest has no MTL device.
 pub struct MetalDevice {
     raw: *mut core::ffi::c_void,
 }
@@ -163,6 +189,15 @@ impl MetalDevice {
         self.raw
     }
 
+    pub fn new_queue(&self) -> Option<MetalQueue> {
+        let raw = unsafe { iomfb_glue_metal_queue(self.raw) };
+        if raw.is_null() {
+            None
+        } else {
+            Some(MetalQueue { raw })
+        }
+    }
+
     /// Wrap `surface` as a Metal texture on this device. Same backing.
     pub fn wrap_texture(&self, surface: &IoSurface, render_target: bool) -> Option<MetalTexture> {
         let raw = unsafe {
@@ -177,6 +212,45 @@ impl MetalDevice {
 }
 
 impl Drop for MetalDevice {
+    fn drop(&mut self) {
+        if !self.raw.is_null() {
+            unsafe { iomfb_glue_metal_release(self.raw) };
+            self.raw = core::ptr::null_mut();
+        }
+    }
+}
+
+/// Command queue for encode + wait before IOMFB swap.
+pub struct MetalQueue {
+    raw: *mut core::ffi::c_void,
+}
+
+impl MetalQueue {
+    pub fn as_ptr(&self) -> *mut core::ffi::c_void {
+        self.raw
+    }
+
+    pub fn wait(&self) -> crate::Result<()> {
+        if unsafe { iomfb_glue_metal_wait(self.raw) } == 0 {
+            Ok(())
+        } else {
+            Err(crate::Error::SurfaceCreateFailed)
+        }
+    }
+
+    pub fn clear(&self, texture: &MetalTexture, rgba: [f32; 4]) -> crate::Result<()> {
+        let rc = unsafe {
+            iomfb_glue_metal_clear(self.raw, texture.as_ptr(), rgba[0], rgba[1], rgba[2], rgba[3])
+        };
+        if rc == 0 {
+            Ok(())
+        } else {
+            Err(crate::Error::SurfaceCreateFailed)
+        }
+    }
+}
+
+impl Drop for MetalQueue {
     fn drop(&mut self) {
         if !self.raw.is_null() {
             unsafe { iomfb_glue_metal_release(self.raw) };

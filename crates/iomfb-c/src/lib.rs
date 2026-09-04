@@ -321,6 +321,82 @@ pub extern "C" fn iomfb_swapchain_present_external(
 }
 
 #[no_mangle]
+pub extern "C" fn iomfb_swapchain_clear(
+    swapchain: *mut core::ffi::c_void,
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+) -> i32 {
+    let Some(sw) = swapchain_mut(swapchain) else {
+        return IOMFB_C_MISSING;
+    };
+    match sw.clear([r, g, b, a]) {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_display_id(display: *mut core::ffi::c_void, out: *mut u32) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.id() {
+        Ok(id) => {
+            if !out.is_null() {
+                unsafe { *out = id };
+            }
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_display_is_main(display: *mut core::ffi::c_void, out: *mut u32) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.is_main() {
+        Ok(v) => {
+            if !out.is_null() {
+                unsafe { *out = u32::from(v) };
+            }
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swap_cancel_all(display: *mut core::ffi::c_void) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.swap_cancel_all() {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swap_get_current(display: *mut core::ffi::c_void, out: *mut u32) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.swap_get_current() {
+        Ok(token) => {
+            if !out.is_null() {
+                unsafe { *out = token };
+            }
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn iomfb_swapchain_close(swapchain: *mut core::ffi::c_void) {
     if !swapchain.is_null() {
         unsafe { drop(Box::from_raw(swapchain as *mut GpuSwapchain)) };

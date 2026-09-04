@@ -29,6 +29,12 @@ Guest SSH: `root` or `mobile` / `alpine`, port `22222`. IP from
 `/bin/cat` or `/bin/ls`. Use `/var/jb/usr/bin/*`. No sftp: push files
 with `ssh … 'dd of=…' < file`.
 
+Jailbreak RE packages (Procursus): `debugserver` (lab bootstrap),
+`odcctools` (`nm`, `otool`), `llvm-14` / `llvm-16`. Frida is in
+`frida.list` if needed. Host `ipsw macho disass --force` on the
+extracted Mach-O is the fast arity pass. vphone ships
+`Metal.framework`. The Metal tipa is the GPU proof.
+
 ```bash
 export PATH="$HOME/.vphone/src/vphone-cli/.tools/bin:$PATH"
 SSHPASS=alpine sshpass -e ssh -p 22222 \

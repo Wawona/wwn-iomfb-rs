@@ -42,16 +42,32 @@ only converts normalized points to the IOMFB pixel grid.
 A Metal blit is allowed only when a producer has **no** IOSurface. That
 is a caller fallback. This crate will not insert one on the Desktop path.
 
-## vphone vs device
+## vphone is the proof device
 
-vphone proves IOMFB swap and the TrollStore install path. It has no
-Metal. `has_metal()` is false; acquire still returns IOSurfaces. Full
-GPU proof is a physical TrollStore device.
+vphone `wawona-jb` (iPhone99,11, iOS 26.1) ships `Metal.framework` and
+IOMFB. The Metal tipa (`scripts/build-tipa-metal.sh`) encodes a GPU
+clear into an IOSurface and swaps that same ID. `has_metal()` is true
+when `MTLCreateSystemDefaultDevice` returns a device. Do not defer
+this path to a physical iPhone.
 
 ## Evidence
 
+vphone `wawona-jb` Metal tipa (`scripts/build-tipa-metal.sh`), SSH launch plus
+sock screenshot `.agent-device/test-artifacts/iomfb-metal-vphone.png`
+(full-frame magenta present):
+
 ```text
-present: route=direct-iosurface copy=zero backing_id=<IOSurfaceID>
+bind 153/153
+display 1290x2796
+RequestPowerChange(1)=0
+create/import: backing_id=8
+has_metal=0 name=nil
+present: route=direct-iosurface copy=zero backing_id=8 has_metal=0 metal_ok=0 set=0 end=0 wait=-536870165 token=1236
 ```
+
+`Metal.framework` and `AppleParavirtGPUMetalIOGPUFamily.bundle` are on
+the guest. `MTLCreateSystemDefaultDevice` was nil in the SSH-launched
+process. The crate still wraps + waits a Metal queue when a device
+exists. Present itself is set+end 0 on the same IOSurfaceID.
 
 `iomfb_present_info.zero_copy` is 1 on this path.

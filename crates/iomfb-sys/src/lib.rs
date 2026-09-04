@@ -17,6 +17,11 @@ pub type SwapCancelFn = unsafe extern "C" fn(DisplayRef, i32) -> IomfbReturn;
 pub type GetLayerDefaultSurfaceFn =
     unsafe extern "C" fn(DisplayRef, i32, *mut *mut core::ffi::c_void) -> IomfbReturn;
 pub type PowerIntFn = unsafe extern "C" fn(DisplayRef, i32) -> IomfbReturn;
+pub type GetU32Fn = unsafe extern "C" fn(DisplayRef, *mut u32) -> IomfbReturn;
+pub type SwapCancelAllFn = unsafe extern "C" fn(DisplayRef) -> IomfbReturn;
+pub type NotifyEnableFn =
+    unsafe extern "C" fn(DisplayRef, *mut core::ffi::c_void, *mut core::ffi::c_void) -> IomfbReturn;
+pub type NotifyDisableFn = unsafe extern "C" fn(DisplayRef) -> IomfbReturn;
 
 /// Confirmed 6-arg on iOS 26.1. Two `CGRect`s by value (8 doubles), then flags.
 pub type SwapSetLayer6Fn = unsafe extern "C" fn(
@@ -48,6 +53,12 @@ pub struct Symbols {
     pub get_layer_default_surface: Option<GetLayerDefaultSurfaceFn>,
     pub enable_disable_video_power_savings: Option<PowerIntFn>,
     pub request_power_change: Option<PowerIntFn>,
+    pub get_id: Option<GetU32Fn>,
+    pub is_main_display: Option<GetU32Fn>,
+    pub swap_cancel_all: Option<SwapCancelAllFn>,
+    pub swap_get_current: Option<GetU32Fn>,
+    pub enable_vsync_notifications: Option<NotifyEnableFn>,
+    pub disable_vsync_notifications: Option<NotifyDisableFn>,
     /// Every public `IOMobileFramebuffer*` name that `dlsym` resolved.
     pub bound: usize,
 }
@@ -104,6 +115,14 @@ fn load_apple() -> Option<Symbols> {
         s.enable_disable_video_power_savings =
             dlsym_fn(handle, "IOMobileFramebufferEnableDisableVideoPowerSavings");
         s.request_power_change = dlsym_fn(handle, "IOMobileFramebufferRequestPowerChange");
+        s.get_id = dlsym_fn(handle, "IOMobileFramebufferGetID");
+        s.is_main_display = dlsym_fn(handle, "IOMobileFramebufferIsMainDisplay");
+        s.swap_cancel_all = dlsym_fn(handle, "IOMobileFramebufferSwapCancelAll");
+        s.swap_get_current = dlsym_fn(handle, "IOMobileFramebufferSwapGetCurrent");
+        s.enable_vsync_notifications =
+            dlsym_fn(handle, "IOMobileFramebufferEnableVSyncNotifications");
+        s.disable_vsync_notifications =
+            dlsym_fn(handle, "IOMobileFramebufferDisableVSyncNotifications");
         s.bound = PUBLIC_EXPORTS
             .iter()
             .filter(|name| dlsym_raw(handle, name).is_some())

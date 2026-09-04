@@ -4,10 +4,10 @@
 //! Metal render target  ==  IOSurface  ==  IOMFB SwapSetLayer
 //! ```
 //!
-//! vphone has IOMFB and no Metal. Acquire still yields IOSurfaces.
-//! `metal_texture` is null there. Real devices wrap the same surface.
+//! vphone `wawona-jb` is the proof device. Metal.framework is present.
+//! `has_metal()` is true when `MTLCreateSystemDefaultDevice` succeeds.
 
-use crate::surface::{IoSurface, MetalDevice, MetalTexture};
+use crate::surface::{IoSurface, MetalDevice, MetalQueue, MetalTexture};
 use crate::{Display, Error, Result};
 use iomfb_abi::{PixelFormat, PresentStatus, SWAPCHAIN_BUFFERS};
 
@@ -23,8 +23,8 @@ pub struct GpuSwapchain {
     next: usize,
     width: u32,
     height: u32,
-    /// Kept alive so textures stay valid.
-    _metal: Option<MetalDevice>,
+    metal: Option<MetalDevice>,
+    queue: Option<MetalQueue>,
 }
 
 /// One acquired back buffer. Render into `metal_texture` when present.
@@ -39,7 +39,7 @@ pub struct GpuFrame {
 
 impl GpuSwapchain {
     /// Open the main display, power on, allocate BGRA IOSurfaces.
-    /// Metal wrap is best-effort (null on vphone).
+    /// Metal wrap + queue when the guest has a system MTL device.
     pub fn main() -> Result<Self> {
         let display = Display::main().or_else(|_| Display::secondary())?;
         Self::attach(display)
@@ -47,11 +47,13 @@ impl GpuSwapchain {
 
     pub fn attach(display: Display) -> Result<Self> {
         let _ = display.request_power_on();
+        let _ = display.set_video_power_savings(false);
         let (width, height) = display.size()?;
         if width == 0 || height == 0 {
             return Err(Error::IncompatibleSurface);
         }
         let metal = MetalDevice::system();
+        let queue = metal.as_ref().and_then(MetalDevice::new_queue);
         let mut slots = Vec::with_capacity(SWAPCHAIN_BUFFERS);
         for _ in 0..SWAPCHAIN_BUFFERS {
             let surface = IoSurface::create(width, height, PixelFormat::Bgra8888)
@@ -70,7 +72,8 @@ impl GpuSwapchain {
             next: 0,
             width,
             height,
-            _metal: metal,
+            metal,
+            queue,
         })
     }
 
@@ -79,7 +82,15 @@ impl GpuSwapchain {
     }
 
     pub fn has_metal(&self) -> bool {
-        self.slots.iter().any(|s| s.texture.is_some())
+        self.metal.is_some() && self.queue.is_some() && self.slots.iter().any(|s| s.texture.is_some())
+    }
+
+    /// GPU clear into the current back buffer. Same IOSurface IOMFB will swap.
+    pub fn clear(&self, rgba: [f32; 4]) -> Result<()> {
+        let slot = self.slots.get(self.next).ok_or(Error::IncompatibleSurface)?;
+        let queue = self.queue.as_ref().ok_or(Error::SurfaceCreateFailed)?;
+        let texture = slot.texture.as_ref().ok_or(Error::SurfaceCreateFailed)?;
+        queue.clear(texture, rgba)
     }
 
     /// Next back buffer. GPU apps draw to `metal_texture` then [`Self::present`].
@@ -100,8 +111,11 @@ impl GpuSwapchain {
         })
     }
 
-    /// Present the last acquired slot. Zero-copy.
+    /// Present the last acquired slot. Waits GPU, then IOMFB swap. Zero-copy.
     pub fn present(&mut self) -> Result<PresentStatus> {
+        if let Some(queue) = self.queue.as_ref() {
+            queue.wait()?;
+        }
         let index = self.next;
         let surface = self
             .slots
