@@ -4,7 +4,9 @@
 //! `None`. Symbol types exist so later confirmed families can bind
 //! without guessing arity in the safe crate.
 
-use iomfb_abi::{DisplayRef, DisplaySize, IomfbReturn, FRAMEWORK_PATH, PUBLIC_EXPORTS};
+use iomfb_abi::{DisplayRef, DisplaySize, IomfbReturn, FRAMEWORK_PATH};
+#[cfg(all(feature = "apple-iomfb", target_vendor = "apple"))]
+use iomfb_abi::PUBLIC_EXPORTS;
 
 pub type GetDisplayFn = unsafe extern "C" fn(*mut DisplayRef) -> IomfbReturn;
 pub type GetDisplaySizeFn = unsafe extern "C" fn(DisplayRef, *mut DisplaySize) -> IomfbReturn;
@@ -152,6 +154,6 @@ mod tests {
 
     #[test]
     fn public_export_census_is_complete() {
-        assert_eq!(PUBLIC_EXPORTS.len(), 153);
+        assert_eq!(iomfb_abi::PUBLIC_EXPORTS.len(), 153);
     }
 }

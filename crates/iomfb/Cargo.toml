@@ -15,6 +15,9 @@ name = "iomfb"
 iomfb-abi = { path = "../iomfb-abi" }
 iomfb-sys = { path = "../iomfb-sys" }
 
+[build-dependencies]
+cc = "1.2"
+
 [features]
 default = []
 apple-iomfb = ["iomfb-sys/apple-iomfb"]

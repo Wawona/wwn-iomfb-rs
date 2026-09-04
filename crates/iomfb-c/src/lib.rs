@@ -1,13 +1,16 @@
 //! C ABI for tipas. Names are ours, not Apple's header.
 //! Swap / display / restore are confirmed on iOS 26.1 / 23B85.
 
-use iomfb::{Display, Error, Wait};
+use iomfb::{Display, Error, GpuSwapchain, TouchMap, Wait};
 
 pub const IOMFB_C_OK: i32 = 0;
 pub const IOMFB_C_UNCONFIRMED: i32 = -1;
 pub const IOMFB_C_MISSING: i32 = -2;
 pub const IOMFB_C_LOAD: i32 = -3;
 pub const IOMFB_C_ABSENT: i32 = -4;
+pub const IOMFB_C_SURFACE: i32 = -5;
+pub const IOMFB_C_NULL_SURFACE: i32 = -6;
+pub const IOMFB_C_INCOMPATIBLE: i32 = -7;
 
 fn map_err(e: Error) -> i32 {
     match e {
@@ -16,14 +19,49 @@ fn map_err(e: Error) -> i32 {
         Error::LoadFailed => IOMFB_C_LOAD,
         Error::Iomfb(rc) => rc,
         Error::Absent => IOMFB_C_ABSENT,
+        Error::SurfaceCreateFailed => IOMFB_C_SURFACE,
+        Error::NullSurface => IOMFB_C_NULL_SURFACE,
+        Error::IncompatibleSurface => IOMFB_C_INCOMPATIBLE,
     }
 }
 
-fn display_mut(p: *mut core::ffi::c_void) -> Option<&'static mut Display> {
+fn display_mut<'a>(p: *mut core::ffi::c_void) -> Option<&'a mut Display> {
     if p.is_null() {
         None
     } else {
         Some(unsafe { &mut *(p as *mut Display) })
+    }
+}
+
+fn swapchain_mut<'a>(p: *mut core::ffi::c_void) -> Option<&'a mut GpuSwapchain> {
+    if p.is_null() {
+        None
+    } else {
+        Some(unsafe { &mut *(p as *mut GpuSwapchain) })
+    }
+}
+
+#[repr(C)]
+pub struct IomfbPresentInfo {
+    pub token: i32,
+    pub wait_rc: i32,
+    pub displayed: u8,
+    pub zero_copy: u8,
+}
+
+fn fill_present(out: *mut IomfbPresentInfo, status: iomfb::PresentStatus) {
+    if out.is_null() {
+        return;
+    }
+    let (wait_rc, displayed) = match status.wait {
+        iomfb::WaitOutcome::Displayed => (0, 1),
+        iomfb::WaitOutcome::Incomplete(rc) => (rc, 0),
+    };
+    unsafe {
+        (*out).token = status.token;
+        (*out).wait_rc = wait_rc;
+        (*out).displayed = displayed;
+        (*out).zero_copy = u8::from(status.zero_copy);
     }
 }
 
@@ -161,6 +199,157 @@ pub extern "C" fn iomfb_restore_default_surface(display: *mut core::ffi::c_void)
 pub extern "C" fn iomfb_display_close(display: *mut core::ffi::c_void) {
     if !display.is_null() {
         unsafe { drop(Box::from_raw(display as *mut Display)) };
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_present_iosurface(
+    display: *mut core::ffi::c_void,
+    surface: *mut core::ffi::c_void,
+    out: *mut IomfbPresentInfo,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.present_iosurface(surface) {
+        Ok(status) => {
+            fill_present(out, status);
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swapchain_open(out: *mut *mut core::ffi::c_void) -> i32 {
+    if out.is_null() {
+        return IOMFB_C_MISSING;
+    }
+    match GpuSwapchain::main() {
+        Ok(sw) => {
+            unsafe { *out = Box::into_raw(Box::new(sw)) as *mut core::ffi::c_void };
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swapchain_size(
+    swapchain: *mut core::ffi::c_void,
+    w: *mut u32,
+    h: *mut u32,
+) -> i32 {
+    let Some(sw) = swapchain_mut(swapchain) else {
+        return IOMFB_C_MISSING;
+    };
+    let (ww, hh) = sw.size();
+    if !w.is_null() {
+        unsafe { *w = ww };
+    }
+    if !h.is_null() {
+        unsafe { *h = hh };
+    }
+    IOMFB_C_OK
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swapchain_has_metal(swapchain: *mut core::ffi::c_void) -> i32 {
+    swapchain_mut(swapchain).map(|sw| i32::from(sw.has_metal())).unwrap_or(0)
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swapchain_acquire(
+    swapchain: *mut core::ffi::c_void,
+    out_surface: *mut *mut core::ffi::c_void,
+    out_metal: *mut *mut core::ffi::c_void,
+    out_id: *mut u32,
+) -> i32 {
+    let Some(sw) = swapchain_mut(swapchain) else {
+        return IOMFB_C_MISSING;
+    };
+    match sw.acquire() {
+        Ok(frame) => {
+            if !out_surface.is_null() {
+                unsafe { *out_surface = frame.surface };
+            }
+            if !out_metal.is_null() {
+                unsafe { *out_metal = frame.metal_texture };
+            }
+            if !out_id.is_null() {
+                unsafe { *out_id = frame.iosurface_id };
+            }
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swapchain_present(
+    swapchain: *mut core::ffi::c_void,
+    out: *mut IomfbPresentInfo,
+) -> i32 {
+    let Some(sw) = swapchain_mut(swapchain) else {
+        return IOMFB_C_MISSING;
+    };
+    match sw.present() {
+        Ok(status) => {
+            fill_present(out, status);
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swapchain_present_external(
+    swapchain: *mut core::ffi::c_void,
+    surface: *mut core::ffi::c_void,
+    out: *mut IomfbPresentInfo,
+) -> i32 {
+    let Some(sw) = swapchain_mut(swapchain) else {
+        return IOMFB_C_MISSING;
+    };
+    match sw.present_external(surface) {
+        Ok(status) => {
+            fill_present(out, status);
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swapchain_close(swapchain: *mut core::ffi::c_void) {
+    if !swapchain.is_null() {
+        unsafe { drop(Box::from_raw(swapchain as *mut GpuSwapchain)) };
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_touch_map(
+    display: *mut core::ffi::c_void,
+    nx: f64,
+    ny: f64,
+    out_x: *mut u32,
+    out_y: *mut u32,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match TouchMap::from_display(d) {
+        Ok(map) => {
+            let (x, y) = map.pixel(nx, ny);
+            if !out_x.is_null() {
+                unsafe { *out_x = x };
+            }
+            if !out_y.is_null() {
+                unsafe { *out_y = y };
+            }
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
     }
 }
 

@@ -4,8 +4,13 @@
 //! `Unconfirmed` until `docs/ABI.md` records a guest 26.1 Ghidra pass.
 
 mod exports;
+mod gpu;
 
 pub use exports::PUBLIC_EXPORTS;
+pub use gpu::{
+    PixelFormat, PresentStatus, WaitOutcome, PIXEL_FORMAT_BGRA, PRESENT_LAYER, SWAPCHAIN_BUFFERS,
+    WAIT_INCOMPLETE_GUEST,
+};
 
 use core::fmt;
 

@@ -1,6 +1,19 @@
 //! Safe IOMFB API. Swap / display / default-surface are confirmed on
 //! guest-class iOS 26.1 / 23B85 (`docs/ABI.md`). Other families still
 //! return [`Error::Unconfirmed`].
+//!
+//! GPU present is zero-copy: Metal wraps an IOSurface, IOMFB swaps
+//! that same surface. See [`GpuSwapchain`] and `docs/GPU.md`.
+
+mod gpu;
+mod present;
+mod surface;
+mod touch;
+
+pub use gpu::{GpuFrame, GpuSwapchain};
+pub use iomfb_abi::{PixelFormat, PresentStatus, WaitOutcome, SWAPCHAIN_BUFFERS};
+pub use surface::{IoSurface, MetalDevice, MetalTexture};
+pub use touch::TouchMap;
 
 use iomfb_abi::{DisplayRef, DisplaySize, IOMFB_OK};
 use iomfb_sys::{load, Symbols};
@@ -18,6 +31,12 @@ pub enum Error {
     Iomfb(i32),
     /// Guest image has no such export.
     Absent,
+    /// IOSurfaceCreate failed or Metal/IOSurface glue is missing.
+    SurfaceCreateFailed,
+    /// Null IOSurface passed to a present path.
+    NullSurface,
+    /// Size or fourcc does not match the opened display.
+    IncompatibleSurface,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -144,13 +163,9 @@ impl Display {
             .ok_or(Error::MissingSymbol)?;
         let mut surface = core::ptr::null_mut();
         let _ = unsafe { get(self.raw, 0, &mut surface) };
-        let token = self.swap_begin()?;
-        let (w, h) = self.size().unwrap_or((0, 0));
-        let rect = [0.0, 0.0, f64::from(w), f64::from(h)];
-        let set = self.swap_set_layer(0, surface, rect, rect, 0);
-        let end = self.swap_end();
-        let wait = self.swap_wait(token, Wait::UntilDisplayed);
-        set.and(end).and(wait)
+        // Default surface is SpringBoard CA. Restore-only. Never a render target.
+        let _ = self.commit_surface(0, surface, true);
+        Ok(())
     }
 
     pub fn request_power_on(&self) -> Result<()> {

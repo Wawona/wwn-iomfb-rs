@@ -1,7 +1,10 @@
 # ffi (ObjC trampoline)
 
-Thin trampoline for `CGRect` / `IOSurface` only. Policy and the public API
-live in Rust (`iomfb`, `iomfb-c`).
+Thin trampoline:
 
-Do not grow product loops here. Do not include Apple IOMFB headers.
-`dlopen` the framework at runtime.
+- `iomfb_trampoline.m`: `CGRect` packing into the C ABI
+- `iomfb_surface.m`: `IOSurfaceCreate` and Metal
+  `newTextureWithDescriptor:iosurface:plane:` (zero-copy wrap)
+
+Policy, swapchain, and IOMFB present live in Rust. Do not blit here.
+Do not include Apple IOMFB headers. `dlopen` the framework at runtime.

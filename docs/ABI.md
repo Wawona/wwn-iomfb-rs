@@ -206,6 +206,12 @@ Confirmed on every sampled `Swap*` / size / power wrapper:
 Add `_kern_*` / `_virt_*` as they are confirmed. They are not public
 `dlsym` names. Census of public `IOMobileFramebuffer*` is the 100% floor.
 
+## GPU present
+
+IOSurface is the dma-buf. Metal wrap of that surface is zero-copy.
+`Display::present_iosurface` / `GpuSwapchain` commit layer 0. Wait
+`0xe000002b` is incomplete, not a failed present. See `docs/GPU.md`.
+
 ## Milestone map
 
 | Milestone | Family | ABI rows |

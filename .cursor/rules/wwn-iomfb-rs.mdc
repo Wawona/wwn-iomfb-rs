@@ -8,5 +8,9 @@ alwaysApply: true
 Guest vphone iOS 26.1 `IOMobileFramebuffer` is the authority. Confirm every
 prior claim in `docs/CLAIMS.md` with GhidraVibe before it becomes crate ABI.
 
-Never commit Apple headers, Ghidra paste, DSC, IPSW, or Disk.img.
-Never import this crate from L0-L2. Runtime is TrollStore tipa, not jailbreak.
+Never commit Apple IOMFB headers, Ghidra paste, DSC, IPSW, or Disk.img.
+Never import this crate from L0-L2.
+Runtime consumers: TrollStore tipa, jailbreak tweak, later Wawona
+Mode B Desktop. Not App Store. ElleKit is not this crate.
+GPU present is IOSurface zero-copy (Metal wrap of the same surface).
+Do not blit on the Desktop path. HID park is Wawona, not IOMFB.
