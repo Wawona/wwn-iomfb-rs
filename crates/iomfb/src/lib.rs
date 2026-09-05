@@ -1,9 +1,9 @@
-//! Safe IOMFB API. Every public `IOMobileFramebuffer*` export is
-//! confirmed on guest-class iOS 26.1 / 23B85 (`docs/ABI.md`).
-//! Stubs (`SwapSignal`, `SwapSetUISubRegion`) return [`Error::Absent`].
+//! Safe IOMFB API. Product path is userspace: no `IOConnect`, no
+//! `IOMobileFramebufferUserClient`. Apple `dlopen` is lab-only
+//! (`WWN_IOMFB_APPLE=1`). See [`userland`] and `docs/USERLAND.md`.
 //!
-//! GPU present is zero-copy: Metal wraps an IOSurface, IOMFB swaps
-//! that same surface. See [`GpuSwapchain`] and `docs/GPU.md`.
+//! GPU present is zero-copy: Metal wraps an IOSurface. The host
+//! (CALayer / iland) presents that same surface.
 
 mod call;
 mod color;
@@ -13,9 +13,11 @@ mod live;
 mod present;
 mod surface;
 mod touch;
+mod userland;
 
 pub use call::{export_is_stub, export_ptr};
 pub use live::{live_call_name, public_export_count, public_export_name};
+pub use userland::{configure as configure_userland, PresentFn};
 pub use gpu::{GpuFrame, GpuSwapchain};
 pub use iomfb_abi::{PixelFormat, PresentStatus, WaitOutcome, SWAPCHAIN_BUFFERS};
 pub use surface::{IoSurface, MetalDevice, MetalQueue, MetalTexture};
@@ -81,10 +83,17 @@ pub(crate) fn map_return(rc: i32) -> Result<()> {
     }
 }
 
-/// One opened display. Confirmed family: main / secondary / size / swap / restore.
+pub(crate) enum Inner {
+    Userland(userland::Userland),
+    Apple {
+        raw: DisplayRef,
+        symbols: &'static Symbols,
+    },
+}
+
+/// One opened display. Product path is [`Display::userland`].
 pub struct Display {
-    raw: DisplayRef,
-    symbols: &'static Symbols,
+    inner: Inner,
 }
 
 impl Display {
@@ -96,37 +105,96 @@ impl Display {
         if raw.0.is_null() {
             return Err(Error::Iomfb(-1));
         }
-        Ok(Self { raw, symbols })
+        Ok(Self {
+            inner: Inner::Apple { raw, symbols },
+        })
     }
 
-    /// `IOMobileFramebufferGetMainDisplay`. Confirmed.
+    pub(crate) fn userland_state(&self) -> Option<&userland::Userland> {
+        match &self.inner {
+            Inner::Userland(u) => Some(u),
+            Inner::Apple { .. } => None,
+        }
+    }
+
+    pub(crate) fn apple_parts(&self) -> Result<(DisplayRef, &'static Symbols)> {
+        match self.inner {
+            Inner::Apple { raw, symbols } => Ok((raw, symbols)),
+            Inner::Userland(_) => Err(Error::Absent),
+        }
+    }
+
+    pub fn is_userland(&self) -> bool {
+        matches!(self.inner, Inner::Userland(_))
+    }
+
+    /// Userspace display. Never opens the IOMFB userclient.
+    pub fn userland(width: u32, height: u32) -> Result<Self> {
+        Ok(Self {
+            inner: Inner::Userland(userland::Userland::new(width, height, true)?),
+        })
+    }
+
+    /// Host or configured geometry. Lab: `WWN_IOMFB_APPLE=1` uses Apple.
     pub fn main() -> Result<Self> {
-        let symbols = table()?;
-        Self::from_getter(symbols.get_main_display)
+        if userland::apple_oracle_requested() {
+            let symbols = table()?;
+            return Self::from_getter(symbols.get_main_display);
+        }
+        let (w, h) = userland::resolve_geometry()?;
+        Self::userland(w, h)
     }
 
-    /// `IOMobileFramebufferGetSecondaryDisplay`. Confirmed present.
+    /// Lab oracle only. Product code should not call this.
     pub fn secondary() -> Result<Self> {
+        if !userland::apple_oracle_requested() {
+            return Err(Error::Absent);
+        }
         let symbols = table()?;
         Self::from_getter(symbols.get_secondary_display)
     }
 
-    /// Userspace writes `CGSize` (two doubles). Kernel selector 8 is `{u32,u32}`.
+    /// Lab oracle `GetMainDisplay`. Product path is [`Self::userland`].
+    pub fn apple_main() -> Result<Self> {
+        let symbols = table()?;
+        Self::from_getter(symbols.get_main_display)
+    }
+
+    pub fn set_present(&self, f: Option<PresentFn>, ctx: *mut core::ffi::c_void) {
+        if let Some(u) = self.userland_state() {
+            u.set_present(f, ctx);
+        }
+    }
+
+    pub fn last_surface(&self) -> *mut core::ffi::c_void {
+        self.userland_state()
+            .map(userland::Userland::last_surface)
+            .unwrap_or(core::ptr::null_mut())
+    }
+
     pub fn size(&self) -> Result<(u32, u32)> {
-        let f = self.symbols.get_display_size.ok_or(Error::MissingSymbol)?;
+        if let Some(u) = self.userland_state() {
+            return Ok(u.size());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.get_display_size.ok_or(Error::MissingSymbol)?;
         let mut size = DisplaySize::default();
-        map_return(unsafe { f(self.raw, &mut size) })?;
+        map_return(unsafe { f(raw, &mut size) })?;
         Ok((size.width as u32, size.height as u32))
     }
 
     pub fn swap_begin(&self) -> Result<i32> {
-        let f = self.symbols.swap_begin.ok_or(Error::MissingSymbol)?;
+        if let Some(u) = self.userland_state() {
+            return Ok(u.swap_begin());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.swap_begin.ok_or(Error::MissingSymbol)?;
         let mut token = 0i32;
-        map_return(unsafe { f(self.raw, &mut token) })?;
+        map_return(unsafe { f(raw, &mut token) })?;
         Ok(token)
     }
 
-    /// Confirmed 6-arg: layer `0..3`, two `CGRect`s by value (8 doubles), flags.
+    /// Confirmed 6-arg on Apple. Userland stores layer + IOSurface.
     pub fn swap_set_layer(
         &self,
         layer: i32,
@@ -135,91 +203,123 @@ impl Display {
         dst: [f64; 4],
         flags: i32,
     ) -> Result<()> {
+        if let Some(u) = self.userland_state() {
+            let _ = (src, dst, flags);
+            return u.swap_set_layer(layer, surface);
+        }
         if !(0..4).contains(&layer) {
             return Err(Error::Iomfb(-1));
         }
-        let f = self.symbols.swap_set_layer_6.ok_or(Error::MissingSymbol)?;
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.swap_set_layer_6.ok_or(Error::MissingSymbol)?;
         map_return(unsafe {
             f(
-                self.raw, layer, surface, src[0], src[1], src[2], src[3], dst[0], dst[1], dst[2],
+                raw, layer, surface, src[0], src[1], src[2], src[3], dst[0], dst[1], dst[2],
                 dst[3], flags,
             )
         })
     }
 
-    /// Public wrapper is 1-arg. Confirmed.
     pub fn swap_end(&self) -> Result<()> {
-        let f = self.symbols.swap_end.ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw) })
+        if let Some(u) = self.userland_state() {
+            return u.swap_end();
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.swap_end.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw) })
     }
 
     pub fn swap_wait(&self, token: i32, wait: Wait) -> Result<()> {
-        let f = self.symbols.swap_wait.ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, token, wait.as_i32()) })
+        if let Some(u) = self.userland_state() {
+            return u.swap_wait(token, wait);
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.swap_wait.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw, token, wait.as_i32()) })
     }
 
-    /// Confirmed: selector `0x34`. One token. No cancel-all in this method.
     pub fn swap_cancel(&self, token: i32) -> Result<()> {
-        let f = self.symbols.swap_cancel.ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, token) })
+        if let Some(u) = self.userland_state() {
+            return u.swap_cancel(token);
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.swap_cancel.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw, token) })
     }
 
     pub fn restore_default_surface(&self) -> Result<()> {
-        let get = self
-            .symbols
+        if let Some(u) = self.userland_state() {
+            return u.restore();
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let get = symbols
             .get_layer_default_surface
             .ok_or(Error::MissingSymbol)?;
         let mut surface = core::ptr::null_mut();
-        let _ = unsafe { get(self.raw, 0, &mut surface) };
-        // Default surface is SpringBoard CA. Restore-only. Never a render target.
+        let _ = unsafe { get(raw, 0, &mut surface) };
         let _ = self.commit_surface(0, surface, true);
         Ok(())
     }
 
     pub fn request_power_on(&self) -> Result<()> {
-        let f = self
-            .symbols
-            .request_power_change
-            .ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, 1) })
+        if self.is_userland() {
+            return Ok(());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.request_power_change.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw, 1) })
     }
 
-    /// Confirmed: `0` disables savings (full panel power). `1` enables savings.
     pub fn set_video_power_savings(&self, enabled: bool) -> Result<()> {
-        let f = self
-            .symbols
+        if self.is_userland() {
+            return Ok(());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols
             .enable_disable_video_power_savings
             .ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, i32::from(enabled)) })
+        map_return(unsafe { f(raw, i32::from(enabled)) })
     }
 
-    /// Confirmed selector 7. Cached on the object.
     pub fn id(&self) -> Result<u32> {
-        let f = self.symbols.get_id.ok_or(Error::MissingSymbol)?;
+        if let Some(u) = self.userland_state() {
+            return Ok(u.id());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.get_id.ok_or(Error::MissingSymbol)?;
         let mut id = 0u32;
-        map_return(unsafe { f(self.raw, &mut id) })?;
+        map_return(unsafe { f(raw, &mut id) })?;
         Ok(id)
     }
 
-    /// Confirmed selector 0x12.
     pub fn is_main(&self) -> Result<bool> {
-        let f = self.symbols.is_main_display.ok_or(Error::MissingSymbol)?;
+        if let Some(u) = self.userland_state() {
+            return Ok(u.is_main());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.is_main_display.ok_or(Error::MissingSymbol)?;
         let mut v = 0u32;
-        map_return(unsafe { f(self.raw, &mut v) })?;
+        map_return(unsafe { f(raw, &mut v) })?;
         Ok(v != 0)
     }
 
-    /// Confirmed selector 0x51. Cancels this connection's swaps, not a display grab.
     pub fn swap_cancel_all(&self) -> Result<()> {
-        let f = self.symbols.swap_cancel_all.ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw) })
+        if let Some(u) = self.userland_state() {
+            return u.swap_cancel_all();
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.swap_cancel_all.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw) })
     }
 
-    /// Confirmed selector 0x5b.
     pub fn swap_get_current(&self) -> Result<u32> {
-        let f = self.symbols.swap_get_current.ok_or(Error::MissingSymbol)?;
+        if let Some(u) = self.userland_state() {
+            return Ok(u.swap_get_current());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.swap_get_current.ok_or(Error::MissingSymbol)?;
         let mut token = 0u32;
-        map_return(unsafe { f(self.raw, &mut token) })?;
+        map_return(unsafe { f(raw, &mut token) })?;
         Ok(token)
     }
 }
@@ -239,8 +339,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn main_needs_framework_off_device() {
+    fn main_needs_geometry_off_device() {
         let err = Display::main().err();
-        assert!(matches!(err, Some(Error::LoadFailed) | Some(Error::MissingSymbol)));
+        assert!(matches!(
+            err,
+            Some(Error::LoadFailed) | Some(Error::MissingSymbol) | Some(Error::Absent)
+        ));
+    }
+
+    #[test]
+    fn userland_open_needs_no_framework() {
+        let d = Display::userland(1290, 2796).unwrap();
+        assert!(d.is_userland());
+        assert_eq!(d.size().unwrap(), (1290, 2796));
+        assert_eq!(d.id().unwrap(), 1);
+        assert!(d.is_main().unwrap());
+        let token = d.swap_begin().unwrap();
+        d.swap_set_layer(0, core::ptr::null_mut(), [0.0; 4], [0.0; 4], 0)
+            .unwrap();
+        d.swap_end().unwrap();
+        d.swap_wait(token, Wait::UntilDisplayed).unwrap();
+        assert!(d.present_iosurface(core::ptr::null_mut()).is_err());
     }
 }

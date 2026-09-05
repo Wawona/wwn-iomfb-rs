@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int g_fail;
@@ -19,6 +20,7 @@ static void rec(const char *name, int rc) {
 }
 
 int main(void) {
+    setenv("WWN_IOMFB_APPLE", "1", 0);
     uint32_t bound = iomfb_bound_export_count();
     printf("bound %u/153\n", bound);
     printf("stub_signal %d stub_uisub %d\n",

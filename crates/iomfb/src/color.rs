@@ -7,103 +7,132 @@ use crate::{map_return, Display, Error, Result};
 use iomfb_abi::GAMMA_TABLE_SIZE;
 
 impl Display {
-    /// Selector `0x13`.
     pub fn set_white_on_black(&self, on: bool) -> Result<()> {
-        let f = self
-            .symbols
-            .set_white_on_black
-            .ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, i32::from(on)) })
+        if let Some(u) = self.userland_state() {
+            u.set_white_on_black(on);
+            return Ok(());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.set_white_on_black.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw, i32::from(on)) })
     }
 
-    /// Selector `0x33`.
     pub fn set_color_remap_mode(&self, mode: i32) -> Result<()> {
-        let f = self
-            .symbols
-            .set_color_remap_mode
-            .ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, mode) })
+        if let Some(u) = self.userland_state() {
+            u.set_color_remap_mode(mode);
+            return Ok(());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.set_color_remap_mode.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw, mode) })
     }
 
-    /// Selector `0x39`.
     pub fn get_color_remap_mode(&self) -> Result<u32> {
-        let f = self
-            .symbols
-            .get_color_remap_mode
-            .ok_or(Error::MissingSymbol)?;
+        if let Some(u) = self.userland_state() {
+            return Ok(u.get_color_remap_mode());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.get_color_remap_mode.ok_or(Error::MissingSymbol)?;
         let mut mode = 0u32;
-        map_return(unsafe { f(self.raw, &mut mode) })?;
+        map_return(unsafe { f(raw, &mut mode) })?;
         Ok(mode)
     }
 
-    /// Selector `0x11`. `table` must be `GAMMA_TABLE_SIZE` bytes.
     pub fn set_gamma_table(&self, table: &[u8]) -> Result<()> {
+        if let Some(u) = self.userland_state() {
+            return u.set_gamma_table(table);
+        }
         if table.len() < GAMMA_TABLE_SIZE {
             return Err(Error::IncompatibleSurface);
         }
-        let f = self.symbols.set_gamma_table.ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, table.as_ptr().cast()) })
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.set_gamma_table.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw, table.as_ptr().cast()) })
     }
 
-    /// Selector `0x1b`. Writes `GAMMA_TABLE_SIZE` bytes.
     pub fn get_gamma_table(&self, table: &mut [u8]) -> Result<()> {
+        if let Some(u) = self.userland_state() {
+            return u.get_gamma_table(table);
+        }
         if table.len() < GAMMA_TABLE_SIZE {
             return Err(Error::IncompatibleSurface);
         }
-        let f = self.symbols.get_gamma_table.ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, table.as_mut_ptr().cast()) })
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.get_gamma_table.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw, table.as_mut_ptr().cast()) })
     }
 
-    /// Selector `0x32`.
-    pub fn set_brightness_correction(&self, value: i32) -> Result<()> {
-        let f = self
-            .symbols
+    pub fn set_brightness_correction(&self, _value: i32) -> Result<()> {
+        if self.is_userland() {
+            return Ok(());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols
             .set_brightness_correction
             .ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, value) })
+        map_return(unsafe { f(raw, _value) })
     }
 
-    /// Confirmed 3-GPR hold helper. Not an exclusive grab.
     pub fn ready_for_swap(&self) -> Result<()> {
-        let f = self.symbols.ready_for_swap.ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, core::ptr::null_mut(), 0) })
+        if let Some(u) = self.userland_state() {
+            return u.ready_for_swap();
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.ready_for_swap.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw, core::ptr::null_mut(), 0) })
     }
 
-    /// Notify type 5 / sel `0x48`. Null callback is a recorded enable.
     pub fn enable_vsync_notifications(&self) -> Result<()> {
-        let f = self
-            .symbols
+        if self.is_userland() {
+            return Ok(());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols
             .enable_vsync_notifications
             .ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, core::ptr::null_mut(), core::ptr::null_mut()) })
+        map_return(unsafe { f(raw, core::ptr::null_mut(), core::ptr::null_mut()) })
     }
 
     pub fn disable_vsync_notifications(&self) -> Result<()> {
-        let f = self
-            .symbols
+        if self.is_userland() {
+            return Ok(());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols
             .disable_vsync_notifications
             .ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw) })
+        map_return(unsafe { f(raw) })
     }
 
     pub fn wait_surface(&self) -> Result<()> {
-        let f = self.symbols.wait_surface.ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw) })
+        if self.is_userland() {
+            return Ok(());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.wait_surface.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw) })
     }
 
     pub fn set_droppable(&self, droppable: bool) -> Result<()> {
-        let f = self.symbols.set_droppable.ok_or(Error::MissingSymbol)?;
-        map_return(unsafe { f(self.raw, i32::from(droppable)) })
+        if let Some(u) = self.userland_state() {
+            u.set_droppable(droppable);
+            return Ok(());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols.set_droppable.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(raw, i32::from(droppable)) })
     }
 
-    /// Selector `0x5c`.
     pub fn swap_cancel_all_get_current(&self) -> Result<u32> {
-        let f = self
-            .symbols
+        if let Some(u) = self.userland_state() {
+            return Ok(u.swap_get_current());
+        }
+        let (raw, symbols) = self.apple_parts()?;
+        let f = symbols
             .swap_cancel_all_get_current
             .ok_or(Error::MissingSymbol)?;
         let mut token = 0u32;
-        map_return(unsafe { f(self.raw, &mut token) })?;
+        map_return(unsafe { f(raw, &mut token) })?;
         Ok(token)
     }
 }

@@ -15,4 +15,7 @@ fn main() {
     println!("cargo:rustc-link-lib=framework=Metal");
     println!("cargo:rustc-link-lib=framework=Foundation");
     println!("cargo:rustc-link-lib=framework=CoreFoundation");
+    if target.contains("ios") || target.contains("tvos") || target.contains("xros") {
+        println!("cargo:rustc-link-lib=framework=UIKit");
+    }
 }

@@ -254,7 +254,8 @@ Proven swap-relative offsets (object `fb+0x18+off` unless noted as `fb+`):
 
 IOSurface is the dma-buf. Metal wrap of that surface is zero-copy.
 `Display::present_iosurface` / `GpuSwapchain` commit layer 0 after a
-Metal queue wait. Wait `0xe000002b` is incomplete, not a failed present.
+Metal queue wait. The product backend is userspace (`docs/USERLAND.md`).
+Wait `0xe000002b` is incomplete on the Apple lab oracle, not a failed present.
 vphone ships Metal.framework. See `docs/GPU.md` and
 `scripts/build-tipa-metal.sh`.
 

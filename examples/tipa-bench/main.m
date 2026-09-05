@@ -1,7 +1,8 @@
 /* MIT License. Copyright (c) 2026 Alex Spaulding
  *
  * TrollStore Metal GPU bench. Encodes into an IOSurface-backed MTLTexture,
- * then iomfb-c SwapSetLayer of that same surface (zero-copy).
+ * then iomfb-c presents that same IOSurface to the host view
+ * (userspace, no IOMFB userclient).
  *
  * Touch: one finger orbits the camera. Extra fingers are lights / metaballs.
  * Pinch changes shader load. HUD: FPS, GPU ms, CPU ms, thermal, CPU %, load,
@@ -101,6 +102,16 @@ static const char *thermal_name(NSProcessInfoThermalState s) {
 
 @interface BenchView : UIView
 @end
+
+static void bench_present(
+    void *ctx, void *surface, uint32_t w, uint32_t h, int32_t token, int32_t layer) {
+    (void)w;
+    (void)h;
+    (void)token;
+    (void)layer;
+    UIView *view = (__bridge UIView *)ctx;
+    view.layer.contents = (__bridge id)surface;
+}
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 @property (nonatomic, strong) UIWindow *window;
@@ -244,6 +255,9 @@ static const char *thermal_name(NSProcessInfoThermalState s) {
     self.window.rootViewController = vc;
     [self.window makeKeyAndVisible];
 
+    CGRect nb = UIScreen.mainScreen.nativeBounds;
+    iomfb_display_configure((uint32_t)nb.size.width, (uint32_t)nb.size.height);
+
     void *sw = NULL;
     int rc = iomfb_swapchain_open(&sw);
     fprintf(stderr, "iomfb_swapchain_open rc=%d bound=%u has_metal=%d\n",
@@ -251,6 +265,7 @@ static const char *thermal_name(NSProcessInfoThermalState s) {
     if (rc != IOMFB_C_OK || !sw) {
         return YES;
     }
+    iomfb_swapchain_set_present(sw, bench_present, (__bridge void *)view);
     self.swapchain = sw;
     uint32_t w = 0, h = 0;
     iomfb_swapchain_size(sw, &w, &h);

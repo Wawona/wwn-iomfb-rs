@@ -3,8 +3,9 @@
 MIT reconstruction of iOS **IOMobileFramebuffer**. Safe Rust, C ABI, and
 a Metal/IOSurface GPU path. No Apple IOMFB headers. No Apple source.
 
-**Zero-copy is the product.** Metal renders into an IOSurface. IOMFB
-swaps that same surface. That is the Apple dma-buf. See [`docs/GPU.md`](docs/GPU.md).
+**Zero-copy is the product.** Metal renders into an IOSurface. The
+crate presents that same surface in userspace (no IOMFB userclient).
+See [`docs/GPU.md`](docs/GPU.md) and [`docs/USERLAND.md`](docs/USERLAND.md).
 
 Reverse engineering uses jailbroken **vphone** `wawona-jb` (iOS 26.1 /
 23B85). The guest dyld cache is the authority binary.
@@ -69,6 +70,7 @@ HUD: FPS, GPU ms, CPU ms, thermal, CPU %, load, touches, steps.
 - [`docs/SOURCES.md`](docs/SOURCES.md): bibliography. Cite, do not copy.
 - [`docs/CLAIMS.md`](docs/CLAIMS.md): prior claims.
 - [`docs/ABI.md`](docs/ABI.md): iOS 26.1 guest findings.
+- [`docs/USERLAND.md`](docs/USERLAND.md): product backend. No IOConnect.
 - [`docs/LIVE.md`](docs/LIVE.md): vphone return code for every public export.
 - [`docs/LAB.md`](docs/LAB.md): vphone / GhidraVibe loop.
 

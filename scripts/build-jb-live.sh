@@ -16,7 +16,7 @@ mkdir -p "$(dirname "$OUT")"
   -I"$HERE/include" \
   -o "$OUT" "$HERE/examples/jb-cli/live_all.c" \
   "$LIB" -framework Foundation -framework IOSurface -framework Metal \
-  -framework CoreFoundation -lc++
+  -framework CoreFoundation -framework UIKit -lc++
 if command -v ldid >/dev/null; then
   ldid -S"$HERE/examples/jb-cli/ents.plist" "$OUT"
 fi

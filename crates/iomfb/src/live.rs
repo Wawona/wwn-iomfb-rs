@@ -59,6 +59,9 @@ pub unsafe fn live_call_name(display: Option<&Display>, name: &str) -> Result<i3
     if meta.stub {
         return Err(Error::Absent);
     }
+    if display.map(Display::is_userland).unwrap_or(false) {
+        return Err(Error::Absent);
+    }
     let p = export_ptr(name)?;
     let fb = match display {
         Some(d) => d.as_raw(),
@@ -102,7 +105,9 @@ impl Display {
         if raw.0.is_null() {
             return Err(Error::Iomfb(-1));
         }
-        Ok(Self { raw, symbols })
+        Ok(Self {
+            inner: crate::Inner::Apple { raw, symbols },
+        })
     }
 }
 

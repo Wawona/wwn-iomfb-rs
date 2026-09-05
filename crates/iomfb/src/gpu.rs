@@ -1,7 +1,7 @@
 //! GPU swapchain: Metal-renderable IOSurfaces presented without a copy.
 //!
 //! ```text
-//! Metal render target  ==  IOSurface  ==  IOMFB SwapSetLayer
+//! Metal render target  ==  IOSurface  ==  host present callback
 //! ```
 //!
 //! vphone `wawona-jb` is the proof device. Metal.framework is present.
@@ -41,7 +41,7 @@ impl GpuSwapchain {
     /// Open the main display, power on, allocate BGRA IOSurfaces.
     /// Metal wrap + queue when the guest has a system MTL device.
     pub fn main() -> Result<Self> {
-        let display = Display::main().or_else(|_| Display::secondary())?;
+        let display = Display::main()?;
         Self::attach(display)
     }
 
@@ -111,7 +111,7 @@ impl GpuSwapchain {
         })
     }
 
-    /// Present the last acquired slot. Waits GPU, then IOMFB swap. Zero-copy.
+    /// Present the last acquired slot. Waits GPU, then userspace present. Zero-copy.
     pub fn present(&mut self) -> Result<PresentStatus> {
         if let Some(queue) = self.queue.as_ref() {
             queue.wait()?;

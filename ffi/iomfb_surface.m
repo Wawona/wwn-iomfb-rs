@@ -1,11 +1,15 @@
 /* IOSurface + Metal trampoline. No Apple IOMFB header.
- * Zero-copy: Metal texture is created from the IOSurface. IOMFB
- * receives that same IOSurface. Never blit here.
+ * Zero-copy: Metal texture is created from the IOSurface. The
+ * userspace backend presents that same IOSurface. Never blit here.
  */
 #import <CoreFoundation/CoreFoundation.h>
 #import <IOSurface/IOSurfaceRef.h>
 #import <Metal/Metal.h>
 #import <stdint.h>
+#import <TargetConditionals.h>
+#if TARGET_OS_IPHONE
+#import <UIKit/UIKit.h>
+#endif
 
 static int iomfb_glue_bytes_per_element(uint32_t fourcc) {
     switch (fourcc) {
@@ -191,4 +195,27 @@ int iomfb_glue_metal_clear(
     [buf commit];
     [buf waitUntilCompleted];
     return 0;
+}
+
+/* Public UIKit screen size. Not IOMFB. Not IOConnect. */
+int iomfb_glue_host_size(uint32_t *width, uint32_t *height) {
+#if TARGET_OS_IPHONE
+    CGRect b = [UIScreen mainScreen].nativeBounds;
+    uint32_t w = (uint32_t)b.size.width;
+    uint32_t h = (uint32_t)b.size.height;
+    if (w == 0 || h == 0) {
+        return -1;
+    }
+    if (width) {
+        *width = w;
+    }
+    if (height) {
+        *height = h;
+    }
+    return 0;
+#else
+    (void)width;
+    (void)height;
+    return -1;
+#endif
 }

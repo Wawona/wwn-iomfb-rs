@@ -12,8 +12,11 @@ impl Display {
         export_ptr(name)
     }
 
-    /// Confirmed 1-GPR wrapper: `(fb) -> IOReturn`.
+    /// Confirmed 1-GPR wrapper: `(fb) -> IOReturn`. Userland is Absent.
     pub unsafe fn call_unary(&self, name: &str) -> Result<i32> {
+        if self.is_userland() {
+            return Err(Error::Absent);
+        }
         let meta = export_meta(name).ok_or(Error::Absent)?;
         if meta.stub {
             return Err(Error::Absent);
@@ -21,14 +24,17 @@ impl Display {
         if meta.gpr != 1 || meta.fpr != 0 {
             return Err(Error::WrongArity);
         }
+        let (raw, _) = self.apple_parts()?;
         let f: unsafe extern "C" fn(iomfb_abi::DisplayRef) -> IomfbReturn =
             core::mem::transmute(export_ptr(name)?);
-        let rc = f(self.raw);
-        Ok(rc)
+        Ok(f(raw))
     }
 
     /// Confirmed 2-GPR int wrapper: `(fb, i32) -> IOReturn`.
     pub unsafe fn call_int(&self, name: &str, value: i32) -> Result<i32> {
+        if self.is_userland() {
+            return Err(Error::Absent);
+        }
         let meta = export_meta(name).ok_or(Error::Absent)?;
         if meta.stub {
             return Err(Error::Absent);
@@ -36,13 +42,17 @@ impl Display {
         if meta.gpr != 2 || meta.fpr != 0 {
             return Err(Error::WrongArity);
         }
+        let (raw, _) = self.apple_parts()?;
         let f: unsafe extern "C" fn(iomfb_abi::DisplayRef, i32) -> IomfbReturn =
             core::mem::transmute(export_ptr(name)?);
-        Ok(f(self.raw, value))
+        Ok(f(raw, value))
     }
 
     /// Confirmed 2-GPR pointer wrapper: `(fb, *mut c_void) -> IOReturn`.
     pub unsafe fn call_ptr(&self, name: &str, ptr: *mut core::ffi::c_void) -> Result<i32> {
+        if self.is_userland() {
+            return Err(Error::Absent);
+        }
         let meta = export_meta(name).ok_or(Error::Absent)?;
         if meta.stub {
             return Err(Error::Absent);
@@ -50,15 +60,19 @@ impl Display {
         if meta.gpr != 2 || meta.fpr != 0 {
             return Err(Error::WrongArity);
         }
+        let (raw, _) = self.apple_parts()?;
         let f: unsafe extern "C" fn(
             iomfb_abi::DisplayRef,
             *mut core::ffi::c_void,
         ) -> IomfbReturn = core::mem::transmute(export_ptr(name)?);
-        Ok(f(self.raw, ptr))
+        Ok(f(raw, ptr))
     }
 
     pub fn as_raw(&self) -> *mut core::ffi::c_void {
-        self.raw.0
+        match self.apple_parts() {
+            Ok((raw, _)) => raw.0,
+            Err(_) => core::ptr::null_mut(),
+        }
     }
 }
 

@@ -1,8 +1,9 @@
 # GPU zero-copy present
 
 The Mode B framebuffer path is **IOSurface == dma-buf**. Metal renders
-into an IOSurface-backed texture. IOMFB `SwapSetLayer` receives that
-same IOSurface. No CPU lock, no blit, no second allocation.
+into an IOSurface-backed texture. The product backend presents that
+same IOSurface through a host callback (CALayer / iland). It does not
+`IOConnect` the IOMFB userclient. See `docs/USERLAND.md`.
 
 ```text
 TrollStore app / jailbreak tweak / Wawona compositor

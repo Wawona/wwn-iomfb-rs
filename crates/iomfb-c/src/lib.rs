@@ -88,6 +88,59 @@ fn fill_present(out: *mut IomfbPresentInfo, status: iomfb::PresentStatus) {
 }
 
 #[no_mangle]
+pub extern "C" fn iomfb_display_configure(w: u32, h: u32) -> i32 {
+    match iomfb::configure_userland(w, h) {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_display_open_userland(
+    w: u32,
+    h: u32,
+    out: *mut *mut core::ffi::c_void,
+) -> i32 {
+    if out.is_null() {
+        return IOMFB_C_MISSING;
+    }
+    match Display::userland(w, h) {
+        Ok(d) => {
+            unsafe { *out = Box::into_raw(Box::new(d)) as *mut core::ffi::c_void };
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_display_is_userland(display: *mut core::ffi::c_void) -> i32 {
+    display_mut(display).map(|d| i32::from(d.is_userland())).unwrap_or(0)
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_display_set_present(
+    display: *mut core::ffi::c_void,
+    fn_ptr: Option<iomfb::PresentFn>,
+    ctx: *mut core::ffi::c_void,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    d.set_present(fn_ptr, ctx);
+    IOMFB_C_OK
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_display_last_surface(
+    display: *mut core::ffi::c_void,
+) -> *mut core::ffi::c_void {
+    display_mut(display)
+        .map(|d| d.last_surface())
+        .unwrap_or(core::ptr::null_mut())
+}
+
+#[no_mangle]
 pub extern "C" fn iomfb_display_open_main(out: *mut *mut core::ffi::c_void) -> i32 {
     if out.is_null() {
         return IOMFB_C_MISSING;
@@ -376,6 +429,19 @@ pub extern "C" fn iomfb_present_iosurface(
         }
         Err(e) => map_err(e),
     }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swapchain_set_present(
+    swapchain: *mut core::ffi::c_void,
+    fn_ptr: Option<iomfb::PresentFn>,
+    ctx: *mut core::ffi::c_void,
+) -> i32 {
+    let Some(sw) = swapchain_mut(swapchain) else {
+        return IOMFB_C_MISSING;
+    };
+    sw.display().set_present(fn_ptr, ctx);
+    IOMFB_C_OK
 }
 
 #[no_mangle]
@@ -941,6 +1007,19 @@ mod tests {
     fn open_fails_closed_off_device() {
         let rc = iomfb_display_open_main(core::ptr::null_mut());
         assert_eq!(rc, IOMFB_C_MISSING);
+    }
+
+    #[test]
+    fn userland_open_works_off_device() {
+        let mut p = core::ptr::null_mut();
+        assert_eq!(iomfb_display_open_userland(640, 480, &mut p), IOMFB_C_OK);
+        assert!(!p.is_null());
+        assert_eq!(iomfb_display_is_userland(p), 1);
+        let mut w = 0u32;
+        let mut h = 0u32;
+        assert_eq!(iomfb_display_size(p, &mut w, &mut h), IOMFB_C_OK);
+        assert_eq!((w, h), (640, 480));
+        iomfb_display_close(p);
     }
 
     #[test]

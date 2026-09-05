@@ -8,6 +8,9 @@ use iomfb_abi::{DisplayRef, IomfbReturn};
 
 /// `IOMobileFramebufferCalibrationBegin`. Main-only. Selector stuffed as 0x14.
 pub unsafe fn calibration_begin(display: &Display) -> Result<()> {
+    if display.is_userland() {
+        return Err(Error::Absent);
+    }
     let f: unsafe extern "C" fn(DisplayRef) -> IomfbReturn =
         core::mem::transmute(export_ptr("IOMobileFramebufferCalibrationBegin")?);
     map_return(f(DisplayRef(display.as_raw())))
@@ -16,6 +19,9 @@ pub unsafe fn calibration_begin(display: &Display) -> Result<()> {
 /// `IOMobileFramebufferKernelTests`. Selector `0x38`, struct `0x9c`.
 /// `args` must be the guest `IOMFBKernelTestsArguments` layout.
 pub unsafe fn kernel_tests(display: &Display, args: *mut core::ffi::c_void) -> Result<()> {
+    if display.is_userland() {
+        return Err(Error::Absent);
+    }
     if args.is_null() {
         return Err(Error::NullSurface);
     }
@@ -26,6 +32,9 @@ pub unsafe fn kernel_tests(display: &Display, args: *mut core::ffi::c_void) -> R
 
 /// `IOMobileFramebufferFactoryPortal`. Selector `0x4b`.
 pub unsafe fn factory_portal(display: &Display, arg: *mut core::ffi::c_void) -> Result<()> {
+    if display.is_userland() {
+        return Err(Error::Absent);
+    }
     let f: unsafe extern "C" fn(DisplayRef, *mut core::ffi::c_void) -> IomfbReturn =
         core::mem::transmute(export_ptr("IOMobileFramebufferFactoryPortal")?);
     map_return(f(DisplayRef(display.as_raw()), arg))
@@ -39,6 +48,9 @@ pub unsafe fn hdcp_send_request(
     reply: *mut core::ffi::c_void,
     reply_len: usize,
 ) -> Result<()> {
+    if display.is_userland() {
+        return Err(Error::Absent);
+    }
     let f: unsafe extern "C" fn(
         DisplayRef,
         *mut core::ffi::c_void,

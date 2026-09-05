@@ -7,6 +7,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int run_one(const char *name, void *fb) {
@@ -64,6 +65,7 @@ static void typed_helpers(void *fb) {
 }
 
 int main(int argc, char **argv) {
+    setenv("WWN_IOMFB_APPLE", "1", 0);
     setvbuf(stdout, NULL, _IONBF, 0);
     uint32_t n = iomfb_public_export_count();
     uint32_t bound = iomfb_bound_export_count();

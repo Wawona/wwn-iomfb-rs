@@ -38,6 +38,7 @@ extern "C" {
         b: f32,
         a: f32,
     ) -> i32;
+    fn iomfb_glue_host_size(width: *mut u32, height: *mut u32) -> i32;
 }
 
 #[cfg(not(target_vendor = "apple"))]
@@ -97,10 +98,17 @@ mod stub {
     ) -> i32 {
         -1
     }
+    pub unsafe fn iomfb_glue_host_size(_: *mut u32, _: *mut u32) -> i32 {
+        -1
+    }
 }
 
 #[cfg(not(target_vendor = "apple"))]
 use stub::*;
+
+pub(crate) unsafe fn host_size(width: &mut u32, height: &mut u32) -> i32 {
+    iomfb_glue_host_size(width, height)
+}
 
 /// Owned IOSurface. Released on drop.
 pub struct IoSurface {

@@ -56,7 +56,20 @@ typedef struct iomfb_present_info {
     uint8_t zero_copy;
 } iomfb_present_info;
 
+typedef void (*iomfb_present_fn)(
+    void *ctx,
+    void *surface,
+    uint32_t width,
+    uint32_t height,
+    int32_t token,
+    int32_t layer);
+
+int iomfb_display_configure(uint32_t w, uint32_t h);
+int iomfb_display_open_userland(uint32_t w, uint32_t h, void **out);
 int iomfb_display_open_main(void **out);
+int iomfb_display_is_userland(void *display);
+int iomfb_display_set_present(void *display, iomfb_present_fn fn, void *ctx);
+void *iomfb_display_last_surface(void *display);
 int iomfb_display_size(void *display, uint32_t *w, uint32_t *h);
 int iomfb_swap_begin(void *display, int32_t *token);
 int iomfb_swap_set_layer(
@@ -80,6 +93,7 @@ int iomfb_present_iosurface(void *display, void *surface, iomfb_present_info *ou
 void iomfb_display_close(void *display);
 
 int iomfb_swapchain_open(void **out);
+int iomfb_swapchain_set_present(void *swapchain, iomfb_present_fn fn, void *ctx);
 int iomfb_swapchain_size(void *swapchain, uint32_t *w, uint32_t *h);
 int iomfb_swapchain_has_metal(void *swapchain);
 int iomfb_swapchain_acquire(
