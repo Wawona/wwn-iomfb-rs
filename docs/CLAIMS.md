@@ -140,3 +140,9 @@ Lead, not authority. Confirm each selector on **iOS 26.1**.
 - **absent**: symbol not in the 26.1 export list. Document, do not bind.
 
 `docs/ABI.md` is our 26.1 truth after Ghidra. GitHub issues mirror this file.
+`scripts/sync-github.sh` updates S1-S6 family issues and M0-M9 trackers.
+
+Leftover `unconfirmed` rows are not missing Ghidra work:
+
+- `S1-iland-bind` is M9. Wawona L4 present hook. Not this crate.
+- `S5-force-kern` is a CFW rewrite. Documented. Do not ship. Not TrollStore ABI.
