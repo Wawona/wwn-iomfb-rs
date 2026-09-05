@@ -1,6 +1,6 @@
-/* Wawona L4 Mode B sink ABI. Same names as the frozen wwn-iland-iomfb
- * header so Wawona can switch the link without rewriting ios_modeb.rs.
- * Implementation is this crate. L1 must not import it.
+/* Wawona L4 Mode B own-display sink. Same names as the frozen
+ * wwn-iland-iomfb header. wwn_iomfb_open uses Apple GetMainDisplay.
+ * L1 must not import this crate.
  */
 #ifndef WWN_IOMFB_H_SINK
 #define WWN_IOMFB_H_SINK

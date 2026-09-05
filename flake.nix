@@ -1,5 +1,5 @@
 {
-  description = "wwn-iomfb-rs: reconstructed iOS IOMobileFramebuffer (MIT). L3-prime, nixpkgs-only. No Apple code.";
+  description = "wwn-iomfb-rs: reconstructed iOS IOMobileFramebuffer (MIT). L3-prime, nixpkgs-only. No Apple code. L1 must not import this.";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";

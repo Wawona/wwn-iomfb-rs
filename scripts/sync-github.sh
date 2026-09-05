@@ -103,7 +103,7 @@ milestones = {
     "M6 Safe Rust + C ABI": "done. Confirmed families bound in iomfb / iomfb-c. Product path is userspace.",
     "M7 Tipa proof": "done. Smoke + bench tipas on vphone. Userspace bench: userland=1 bound=0 has_metal=1.",
     "M8 Remaining exports": "done. 153/153 public names confirmed. Live return codes in docs/LIVE.md.",
-    "M9 Hand-off": "open. Crate ships wwn_iomfb_*. S1-iland-bind waits on Wawona L4 switching off frozen iland-iomfb.",
+    "M9 Hand-off": "open. Crate ships iomfb-ios / wwn_iomfb_*. S1-iland-bind waits on a Mode B present that returns 0.",
 }
 
 for title, blurb in milestones.items():

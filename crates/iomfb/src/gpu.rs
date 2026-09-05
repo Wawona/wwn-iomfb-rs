@@ -46,6 +46,13 @@ impl GpuSwapchain {
         Self::attach(display)
     }
 
+    /// Wawona L4 Desktop own-display. Apple `GetMainDisplay`, not TrollStore
+    /// userspace. A tipa in containers still needs this for panel takeover.
+    pub fn jailbreak_main() -> Result<Self> {
+        let display = Display::jailbreak_main()?;
+        Self::attach(display)
+    }
+
     pub fn attach(display: Display) -> Result<Self> {
         let _ = display.request_power_on();
         let _ = display.set_video_power_savings(false);

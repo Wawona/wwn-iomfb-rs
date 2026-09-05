@@ -144,7 +144,7 @@ Lead, not authority. Confirm each selector on **iOS 26.1**.
 
 Leftover `unconfirmed` rows are not missing Ghidra work:
 
-- `S1-iland-bind` is M9. This crate ships `wwn_iomfb_*`. Wawona L4
-  still links frozen `iland-iomfb`.
+- `S1-iland-bind` is M9. This crate ships `iomfb-ios` / `wwn_iomfb_*`.
+  Status flips when Wawona L4 links it and Mode B present returns 0.
 - `S5-force-kern` is confirmed as CFW-only. Guest 26.1 trampolines are
   still `cbz`/`ldr`/`braaz`. The crate does not rewrite them.

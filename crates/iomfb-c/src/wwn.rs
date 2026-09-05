@@ -1,6 +1,8 @@
-//! Wawona L4 sink ABI (`wwn_iomfb_*`). Channel-aware.
+//! Wawona L4 Desktop sink ABI (`wwn_iomfb_*`).
 //!
-//! TrollStore: userspace swapchain. Jailbreak: Apple GetMain + full RE.
+//! Own-display always uses Apple `GetMainDisplay` (jailbreak channel),
+//! even when the binary lives in a TrollStore container. Generic tipas
+//! that must stay userspace call `iomfb_display_open_trollstore` instead.
 //! Exclusive is last-surface hold. There is no disable-others export.
 
 use crate::{map_err, IOMFB_C_MISSING, IOMFB_C_OK};
@@ -66,7 +68,7 @@ pub extern "C" fn wwn_iomfb_open(out_session: *mut *mut c_void) -> i32 {
         set_bytes(last_open_error_mut(), "open output is null");
         return WWN_IOMFB_INVALID;
     }
-    match GpuSwapchain::main() {
+    match GpuSwapchain::jailbreak_main() {
         Ok(sw) => {
             let session = Session {
                 swapchain: sw,

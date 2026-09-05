@@ -28,10 +28,10 @@ on the userspace backend. Those families exist to talk to hardware.
 `InstallVirtualDisplay(s)` stays fail-closed. This crate does not
 invent a virt vtable.
 
-Wawona L4 Desktop still binds later (`S1-iland-bind`). The hook is
-`wwn_iomfb_*` in `include/wwn_iomfb.h` (same names as the frozen
-iland sink) plus `iomfb_display_set_present` /
-`GpuSwapchain::present_external`.
+Wawona L4 Desktop links `wwn_iomfb_*` (`include/wwn_iomfb.h`). That
+open is Apple `GetMainDisplay` (own-display), not this userspace
+path. Generic tipas stay on `iomfb_display_open_trollstore` /
+`GpuSwapchain::main`.
 
 ## Guest proof (vphone `wawona-jb`, 2026-09-04)
 
