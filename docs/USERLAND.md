@@ -1,8 +1,8 @@
-# Userspace IOMFB (product path)
+# Userspace IOMFB (TrollStore channel)
 
-The crate implements the confirmed IOMFB *ABI* in process memory.
-It does not open `IOMobileFramebufferUserClient` and does not call
-`IOConnect`.
+The TrollStore channel implements the confirmed IOMFB *ABI* in process
+memory. It does not open `IOMobileFramebufferUserClient` and does not
+call `IOConnect`. Jailbreak full RE is `docs/CHANNELS.md`.
 
 ```text
 Metal / compositor
@@ -11,9 +11,10 @@ Metal / compositor
   -> optional present callback (CALayer, iland, CAMetalLayer)
 ```
 
-Apple `dlopen` is a lab oracle only. Set `WWN_IOMFB_APPLE=1` for
-`iomfb-live` / `iomfb-matrix`. Product callers use
-`Display::userland(w, h)` or `iomfb_display_open_userland`.
+Apple `dlopen` is the jailbreak channel only. Set
+`iomfb_channel_set(IOMFB_CHANNEL_JAILBREAK)` (or `WWN_IOMFB_CHANNEL=jailbreak`)
+for `iomfb-live` / `iomfb-matrix`. TrollStore callers use
+`Display::trollstore(w, h)` or `iomfb_display_open_trollstore`.
 
 `Display::main()` resolves size from, in order:
 

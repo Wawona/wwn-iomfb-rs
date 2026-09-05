@@ -121,9 +121,11 @@ power-save polarity, cancel selector, exclusive export.
 
 ## 6. Prove
 
-Product proof is userspace: `scripts/build-jb-userland.sh` then `dd` to
-`/var/jb/usr/local/bin/iomfb-userland`. No `WWN_IOMFB_APPLE`. No IOMFB
-userclient ents. Expect `PASS userspace no-IOConnect`.
+TrollStore proof: `scripts/build-jb-userland.sh` then `dd` to
+`/var/jb/usr/local/bin/iomfb-userland` and
+`iomfb_channel_set(IOMFB_CHANNEL_TROLLSTORE)`. No IOMFB userclient
+ents. Expect `PASS trollstore`. Jailbreak full RE:
+`iomfb_channel_set(IOMFB_CHANNEL_JAILBREAK)` plus `apple-iomfb`.
 
 Bench tipa (`scripts/build-tipa-bench.sh`) presents into `CALayer.contents`.
 Install into `/var/containers/Bundle/Application/…`, never

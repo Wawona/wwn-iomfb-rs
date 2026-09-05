@@ -3,16 +3,20 @@
 MIT reconstruction of iOS **IOMobileFramebuffer**. Safe Rust, C ABI, and
 a Metal/IOSurface GPU path. No Apple IOMFB headers. No Apple source.
 
-**Zero-copy is the product.** Metal renders into an IOSurface. The
-crate presents that same surface in userspace (no IOMFB userclient).
-See [`docs/GPU.md`](docs/GPU.md) and [`docs/USERLAND.md`](docs/USERLAND.md).
+**Zero-copy is the product.** Metal renders into an IOSurface.
+
+Two channels: **TrollStore** (limited userspace present) and
+**jailbreak** (full reconstructed Apple IOMFB ABI). See
+[`docs/CHANNELS.md`](docs/CHANNELS.md), [`docs/GPU.md`](docs/GPU.md),
+and [`docs/USERLAND.md`](docs/USERLAND.md).
 
 Reverse engineering uses jailbroken **vphone** `wawona-jb` (iOS 26.1 /
 23B85). The guest dyld cache is the authority binary.
 
 This crate is the present library for:
 
-- TrollStore / tweak apps that present Metal into an IOSurface
+- TrollStore tipas (limited userspace present)
+- Jailbreak CLIs / tweaks (full 153-export RE)
 - Later **Wawona Mode B Desktop Replacement** (TrollStore or Sileo)
 
 It is not Desktop Replacement itself. HID / SpringBoard park stays in
@@ -69,7 +73,8 @@ HUD: FPS, GPU ms, CPU ms, thermal, CPU %, load, touches, steps.
 - [`docs/SOURCES.md`](docs/SOURCES.md): bibliography. Cite, do not copy.
 - [`docs/CLAIMS.md`](docs/CLAIMS.md): prior claims.
 - [`docs/ABI.md`](docs/ABI.md): iOS 26.1 guest findings.
-- [`docs/USERLAND.md`](docs/USERLAND.md): product backend. No IOConnect.
+- [`docs/CHANNELS.md`](docs/CHANNELS.md): TrollStore limited vs jailbreak full RE.
+- [`docs/USERLAND.md`](docs/USERLAND.md): TrollStore userspace backend. No IOConnect.
 - [`docs/LIVE.md`](docs/LIVE.md): vphone return code for every public export.
 - [`docs/LAB.md`](docs/LAB.md): vphone / GhidraVibe loop.
 

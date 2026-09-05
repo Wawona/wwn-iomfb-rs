@@ -256,6 +256,7 @@ static void bench_present(
     [self.window makeKeyAndVisible];
 
     CGRect nb = UIScreen.mainScreen.nativeBounds;
+    iomfb_channel_set(IOMFB_CHANNEL_TROLLSTORE);
     iomfb_display_configure((uint32_t)nb.size.width, (uint32_t)nb.size.height);
 
     void *sw = NULL;

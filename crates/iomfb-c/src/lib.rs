@@ -2,7 +2,8 @@
 //! Swap / display / restore are confirmed on iOS 26.1 / 23B85.
 
 use iomfb::{
-    Display, Error, GpuSwapchain, TouchMap, TouchSeat, TouchSpace, TouchState, Wait,
+    current_channel, detect_channel, set_channel, Channel, Display, Error, GpuSwapchain,
+    TouchMap, TouchSeat, TouchSpace, TouchState, Wait, CHANNEL_AUTO,
 };
 
 pub const IOMFB_C_OK: i32 = 0;
@@ -88,6 +89,36 @@ fn fill_present(out: *mut IomfbPresentInfo, status: iomfb::PresentStatus) {
 }
 
 #[no_mangle]
+pub extern "C" fn iomfb_channel_set(channel: i32) -> i32 {
+    if channel == CHANNEL_AUTO {
+        set_channel(None);
+        return IOMFB_C_OK;
+    }
+    match Channel::from_i32(channel) {
+        Some(c) => {
+            set_channel(Some(c));
+            IOMFB_C_OK
+        }
+        None => IOMFB_C_MISSING,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_channel_get() -> i32 {
+    current_channel().as_i32()
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_channel_detect() -> i32 {
+    detect_channel().as_i32()
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_full_re() -> i32 {
+    i32::from(current_channel() == Channel::Jailbreak)
+}
+
+#[no_mangle]
 pub extern "C" fn iomfb_display_configure(w: u32, h: u32) -> i32 {
     match iomfb::configure_userland(w, h) {
         Ok(()) => IOMFB_C_OK,
@@ -114,8 +145,43 @@ pub extern "C" fn iomfb_display_open_userland(
 }
 
 #[no_mangle]
+pub extern "C" fn iomfb_display_open_trollstore(
+    w: u32,
+    h: u32,
+    out: *mut *mut core::ffi::c_void,
+) -> i32 {
+    iomfb_display_open_userland(w, h, out)
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_display_open_jailbreak(out: *mut *mut core::ffi::c_void) -> i32 {
+    if out.is_null() {
+        return IOMFB_C_MISSING;
+    }
+    match Display::jailbreak_main() {
+        Ok(d) => {
+            unsafe { *out = Box::into_raw(Box::new(d)) as *mut core::ffi::c_void };
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn iomfb_display_is_userland(display: *mut core::ffi::c_void) -> i32 {
     display_mut(display).map(|d| i32::from(d.is_userland())).unwrap_or(0)
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_display_is_jailbreak(display: *mut core::ffi::c_void) -> i32 {
+    display_mut(display).map(|d| i32::from(d.full_re())).unwrap_or(0)
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_display_channel(display: *mut core::ffi::c_void) -> i32 {
+    display_mut(display)
+        .map(|d| d.channel().as_i32())
+        .unwrap_or(-1)
 }
 
 #[no_mangle]
@@ -449,6 +515,20 @@ pub extern "C" fn iomfb_swapchain_is_userland(swapchain: *mut core::ffi::c_void)
     swapchain_mut(swapchain)
         .map(|sw| i32::from(sw.display().is_userland()))
         .unwrap_or(0)
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swapchain_is_jailbreak(swapchain: *mut core::ffi::c_void) -> i32 {
+    swapchain_mut(swapchain)
+        .map(|sw| i32::from(sw.display().full_re()))
+        .unwrap_or(0)
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_swapchain_channel(swapchain: *mut core::ffi::c_void) -> i32 {
+    swapchain_mut(swapchain)
+        .map(|sw| sw.display().channel().as_i32())
+        .unwrap_or(-1)
 }
 
 #[no_mangle]
@@ -1028,6 +1108,9 @@ mod tests {
         assert_eq!((w, h), (640, 480));
         assert_eq!(iomfb_factory_calibration_begin(p), IOMFB_C_ABSENT);
         assert_eq!(iomfb_bound_export_count(), 0);
+        assert_eq!(iomfb_display_channel(p), 0);
+        assert_eq!(iomfb_display_is_jailbreak(p), 0);
+        assert_eq!(iomfb_channel_get(), 0);
         iomfb_display_close(p);
     }
 

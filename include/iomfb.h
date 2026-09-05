@@ -1,7 +1,8 @@
 /* Reconstructed IOMFB C ABI. Not an Apple header.
  *
- * TrollStore tipas and jailbreak tweaks link this. Wawona Mode B
- * Desktop will call the same present path.
+ * TrollStore tipas (limited) and jailbreak tweaks (full RE) link this.
+ * Wawona Mode B Desktop will call the same present path. See
+ * docs/CHANNELS.md.
  *
  * GPU present is zero-copy: draw into an IOSurface-backed Metal
  * texture, then iomfb_swapchain_present. Wawona compositors pass
@@ -28,6 +29,10 @@ extern "C" {
 #define IOMFB_GAMMA_TABLE_SIZE 0xc0c
 #define IOMFB_KERNEL_TESTS_SIZE 0x9c
 #define IOMFB_PUBLIC_EXPORTS 153
+
+#define IOMFB_CHANNEL_TROLLSTORE 0
+#define IOMFB_CHANNEL_JAILBREAK 1
+#define IOMFB_CHANNEL_AUTO 2
 
 #define IOMFB_TOUCH_UP 0
 #define IOMFB_TOUCH_DOWN 1
@@ -64,10 +69,19 @@ typedef void (*iomfb_present_fn)(
     int32_t token,
     int32_t layer);
 
+int iomfb_channel_set(int channel);
+int iomfb_channel_get(void);
+int iomfb_channel_detect(void);
+int iomfb_full_re(void);
+
 int iomfb_display_configure(uint32_t w, uint32_t h);
 int iomfb_display_open_userland(uint32_t w, uint32_t h, void **out);
+int iomfb_display_open_trollstore(uint32_t w, uint32_t h, void **out);
+int iomfb_display_open_jailbreak(void **out);
 int iomfb_display_open_main(void **out);
 int iomfb_display_is_userland(void *display);
+int iomfb_display_is_jailbreak(void *display);
+int iomfb_display_channel(void *display);
 int iomfb_display_set_present(void *display, iomfb_present_fn fn, void *ctx);
 void *iomfb_display_last_surface(void *display);
 int iomfb_display_size(void *display, uint32_t *w, uint32_t *h);
@@ -95,6 +109,8 @@ void iomfb_display_close(void *display);
 int iomfb_swapchain_open(void **out);
 int iomfb_swapchain_set_present(void *swapchain, iomfb_present_fn fn, void *ctx);
 int iomfb_swapchain_is_userland(void *swapchain);
+int iomfb_swapchain_is_jailbreak(void *swapchain);
+int iomfb_swapchain_channel(void *swapchain);
 int iomfb_swapchain_size(void *swapchain, uint32_t *w, uint32_t *h);
 int iomfb_swapchain_has_metal(void *swapchain);
 int iomfb_swapchain_acquire(

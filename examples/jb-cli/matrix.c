@@ -20,7 +20,9 @@ static void rec(const char *name, int rc) {
 }
 
 int main(void) {
+    iomfb_channel_set(IOMFB_CHANNEL_JAILBREAK);
     setenv("WWN_IOMFB_APPLE", "1", 0);
+    setenv("WWN_IOMFB_CHANNEL", "jailbreak", 0);
     uint32_t bound = iomfb_bound_export_count();
     printf("bound %u/153\n", bound);
     printf("stub_signal %d stub_uisub %d\n",

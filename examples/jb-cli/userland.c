@@ -39,6 +39,11 @@ static int fail(const char *what, int rc)
 int main(void)
 {
     unsetenv("WWN_IOMFB_APPLE");
+    unsetenv("WWN_IOMFB_CHANNEL");
+    iomfb_channel_set(IOMFB_CHANNEL_TROLLSTORE);
+    if (iomfb_full_re() != 0) {
+        return fail("trollstore must not be full RE", iomfb_full_re());
+    }
 
     if (iomfb_bound_export_count() != 0) {
         return fail("bound_export_count must be 0 without Apple", (int)iomfb_bound_export_count());
@@ -150,6 +155,6 @@ int main(void)
 
     iomfb_swapchain_close(sw);
     iomfb_display_close(fb);
-    printf("PASS userspace no-IOConnect\n");
+    printf("PASS trollstore channel=%d full_re=0 no-IOConnect\n", iomfb_channel_get());
     return 0;
 }

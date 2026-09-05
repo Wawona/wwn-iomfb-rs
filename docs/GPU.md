@@ -21,8 +21,8 @@ IOSurface into `present_external`. The IOSurfaceID must not change.
 
 | Consumer | How it links | Privilege |
 |---|---|---|
-| TrollStore `.tipa` | static `iomfb-c` + `include/iomfb.h`, IOSurface/Metal ents | No IOMFB userclient |
-| Jailbreak tweak | same library, process already unsandboxed | Sileo / ElleKit is the tweak, not this crate |
+| TrollStore `.tipa` | static `iomfb-c` (no `apple-iomfb`), IOSurface/Metal ents | Limited. No IOMFB userclient |
+| Jailbreak CLI / tweak | `iomfb-c` + `apple-iomfb`, `IOMFB_CHANNEL_JAILBREAK` | Full RE. ElleKit is the tweak, not this crate |
 | Wawona Mode B Desktop | later L4 call into `GpuSwapchain::present_external` | TrollStore or Sileo |
 
 HID / SpringBoard park is **not** this crate. [`TouchSeat`](../crates/iomfb/src/touch.rs)

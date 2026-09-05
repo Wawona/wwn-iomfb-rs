@@ -65,11 +65,31 @@ static void typed_helpers(void *fb) {
 }
 
 int main(int argc, char **argv) {
+    iomfb_channel_set(IOMFB_CHANNEL_JAILBREAK);
     setenv("WWN_IOMFB_APPLE", "1", 0);
+    setenv("WWN_IOMFB_CHANNEL", "jailbreak", 0);
     setvbuf(stdout, NULL, _IONBF, 0);
     uint32_t n = iomfb_public_export_count();
     uint32_t bound = iomfb_bound_export_count();
     (void)bound;
+
+    if (argc == 2 && strcmp(argv[1], "--probe") == 0) {
+        printf("channel=%d full_re=%d bound=%u/153\n",
+            iomfb_channel_get(), iomfb_full_re(), bound);
+        void *probe = NULL;
+        int open_rc = iomfb_display_open_jailbreak(&probe);
+        printf("open_jailbreak rc=%d userland=%d jailbreak=%d\n",
+            open_rc,
+            probe ? iomfb_display_is_userland(probe) : -1,
+            probe ? iomfb_display_is_jailbreak(probe) : -1);
+        if (probe) {
+            uint32_t w = 0, h = 0;
+            (void)iomfb_display_size(probe, &w, &h);
+            printf("display %ux%u\n", w, h);
+            iomfb_display_close(probe);
+        }
+        return (iomfb_full_re() == 1 && bound == 153 && open_rc == IOMFB_C_OK) ? 0 : 2;
+    }
 
     if (argc == 2 && strcmp(argv[1], "--list") == 0) {
         for (uint32_t i = 0; i < n; i++) {

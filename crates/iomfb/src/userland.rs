@@ -1,9 +1,9 @@
-//! Userspace IOMFB backend. No `IOConnect`, no userclient.
+//! TrollStore userspace backend. No `IOConnect`, no userclient.
 //!
-//! This is the product path. Apple `dlopen` is lab-only
-//! (`WWN_IOMFB_APPLE=1`). Present is an IOSurface plus an optional
-//! host callback (CALayer / iland / CAMetalLayer). Hardware families
-//! (HDCP, factory, KernelTests) stay [`Error::Absent`].
+//! Jailbreak full RE is [`crate::channel::Channel::Jailbreak`]. Present
+//! here is an IOSurface plus an optional host callback (CALayer / iland
+//! / CAMetalLayer). Hardware families (HDCP, factory, KernelTests) stay
+//! [`Error::Absent`].
 
 use crate::{Error, Result, Wait};
 use iomfb_abi::GAMMA_TABLE_SIZE;
@@ -33,13 +33,6 @@ pub fn configure(width: u32, height: u32) -> Result<()> {
     }
     *configured().lock().unwrap_or_else(|e| e.into_inner()) = Some((width, height));
     Ok(())
-}
-
-pub fn apple_oracle_requested() -> bool {
-    match std::env::var("WWN_IOMFB_APPLE") {
-        Ok(v) => v == "1" || v.eq_ignore_ascii_case("true"),
-        Err(_) => false,
-    }
 }
 
 pub fn resolve_geometry() -> Result<(u32, u32)> {

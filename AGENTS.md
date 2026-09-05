@@ -15,6 +15,8 @@ dyld cache image `IOMobileFramebuffer`.
   program name `IOMobileFramebuffer`).
 - Run the lab loop in `docs/LAB.md`.
 - Keep Discord push webhook + `.github/FUNDING.yml` on this repo.
+- Two channels: TrollStore (limited userspace) and jailbreak (full RE).
+  See `docs/CHANNELS.md`. Do not link ElleKit.
 
 ## Never
 

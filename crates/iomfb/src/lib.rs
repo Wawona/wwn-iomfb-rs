@@ -1,11 +1,14 @@
-//! Safe IOMFB API. Product path is userspace: no `IOConnect`, no
-//! `IOMobileFramebufferUserClient`. Apple `dlopen` is lab-only
-//! (`WWN_IOMFB_APPLE=1`). See [`userland`] and `docs/USERLAND.md`.
+//! Safe IOMFB API. Two channels:
 //!
-//! GPU present is zero-copy: Metal wraps an IOSurface. The host
-//! (CALayer / iland) presents that same surface.
+//! - **TrollStore** (default): limited userspace present. No `IOConnect`.
+//! - **Jailbreak**: full reconstructed ABI (`dlopen` Apple IOMFB, 153
+//!   exports, factory / HDCP / live_call). See [`channel`] and
+//!   `docs/CHANNELS.md`.
+//!
+//! GPU present is zero-copy: Metal wraps an IOSurface.
 
 mod call;
+mod channel;
 mod color;
 pub mod factory;
 mod gpu;
@@ -16,6 +19,10 @@ mod touch;
 mod userland;
 
 pub use call::{export_is_stub, export_ptr};
+pub use channel::{
+    current as current_channel, detect as detect_channel, set as set_channel, Channel,
+    CHANNEL_AUTO,
+};
 pub use live::{live_call_name, public_export_count, public_export_name};
 pub use userland::{configure as configure_userland, PresentFn};
 pub use gpu::{GpuFrame, GpuSwapchain};
@@ -67,23 +74,30 @@ impl Wait {
     }
 }
 
-fn load_table() -> Result<&'static Symbols> {
+fn symbols_cell() -> &'static OnceLock<Option<Symbols>> {
     static TABLE: OnceLock<Option<Symbols>> = OnceLock::new();
-    TABLE
+    &TABLE
+}
+
+fn load_table() -> Result<&'static Symbols> {
+    symbols_cell()
         .get_or_init(load)
         .as_ref()
         .ok_or(Error::LoadFailed)
 }
 
-/// Apple `dlsym` table. Product path never loads it.
+/// Apple `dlsym` table. TrollStore never loads it.
 pub(crate) fn table() -> Result<&'static Symbols> {
-    if !userland::apple_oracle_requested() {
-        return Err(Error::Absent);
+    if channel::full_re() {
+        return load_table();
     }
-    load_table()
+    symbols_cell()
+        .get()
+        .and_then(|o| o.as_ref())
+        .ok_or(Error::Absent)
 }
 
-/// Lab `Display::apple_main` only. Still a `dlopen`.
+/// Explicit jailbreak open. Still a `dlopen`.
 pub(crate) fn table_force() -> Result<&'static Symbols> {
     load_table()
 }
@@ -147,35 +161,60 @@ impl Display {
         matches!(self.inner, Inner::Userland(_))
     }
 
-    /// Userspace display. Never opens the IOMFB userclient.
+    /// Channel this display is running. Apple inner is always jailbreak.
+    pub fn channel(&self) -> Channel {
+        if self.is_userland() {
+            Channel::TrollStore
+        } else {
+            Channel::Jailbreak
+        }
+    }
+
+    pub fn full_re(&self) -> bool {
+        !self.is_userland()
+    }
+
+    /// TrollStore / userspace display. Never opens the IOMFB userclient.
     pub fn userland(width: u32, height: u32) -> Result<Self> {
         Ok(Self {
             inner: Inner::Userland(userland::Userland::new(width, height, true)?),
         })
     }
 
-    /// Host or configured geometry. Lab: `WWN_IOMFB_APPLE=1` uses Apple.
-    pub fn main() -> Result<Self> {
-        if userland::apple_oracle_requested() {
-            let symbols = table()?;
-            return Self::from_getter(symbols.get_main_display);
-        }
-        let (w, h) = userland::resolve_geometry()?;
-        Self::userland(w, h)
+    /// Same as [`Self::userland`]. Name is the TrollStore contract.
+    pub fn trollstore(width: u32, height: u32) -> Result<Self> {
+        Self::userland(width, height)
     }
 
-    /// Lab oracle only. Product code should not call this.
+    /// Resolve by [`channel::current`]. TrollStore is userspace. Jailbreak
+    /// is Apple `GetMainDisplay` (full RE).
+    pub fn main() -> Result<Self> {
+        match channel::current() {
+            Channel::Jailbreak => Self::jailbreak_main(),
+            Channel::TrollStore => {
+                let (w, h) = userland::resolve_geometry()?;
+                Self::trollstore(w, h)
+            }
+        }
+    }
+
+    /// Jailbreak full RE: `dlopen` Apple IOMFB and `GetMainDisplay`.
+    pub fn jailbreak_main() -> Result<Self> {
+        Self::from_loaded(None, table_force()?)
+    }
+
+    /// Jailbreak secondary display. Absent on TrollStore.
     pub fn secondary() -> Result<Self> {
-        if !userland::apple_oracle_requested() {
+        if !channel::full_re() {
             return Err(Error::Absent);
         }
         let symbols = table()?;
         Self::from_getter(symbols.get_secondary_display)
     }
 
-    /// Lab oracle `GetMainDisplay`. Product path is [`Self::userland`].
+    /// Alias for [`Self::jailbreak_main`].
     pub fn apple_main() -> Result<Self> {
-        Self::from_loaded(None, table_force()?)
+        Self::jailbreak_main()
     }
 
     pub fn set_present(&self, f: Option<PresentFn>, ctx: *mut core::ffi::c_void) {
@@ -382,11 +421,20 @@ mod tests {
 
     #[test]
     fn apple_symbols_stay_unloaded_by_default() {
-        assert!(!userland::apple_oracle_requested());
+        assert_eq!(channel::current(), Channel::TrollStore);
+        assert!(!channel::full_re());
         assert_eq!(bound_export_count(), 0);
         assert!(matches!(
             export_ptr("IOMobileFramebufferSwapEnd"),
             Err(Error::Absent)
         ));
+    }
+
+    #[test]
+    fn trollstore_alias_is_userland() {
+        let d = Display::trollstore(64, 64).unwrap();
+        assert_eq!(d.channel(), Channel::TrollStore);
+        assert!(!d.full_re());
+        assert!(d.is_userland());
     }
 }
