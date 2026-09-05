@@ -29,7 +29,9 @@ on the userspace backend. Those families exist to talk to hardware.
 invent a virt vtable.
 
 Wawona L4 Desktop still binds later (`S1-iland-bind`). The hook is
-`iomfb_display_set_present` / `GpuSwapchain::present_external`.
+`wwn_iomfb_*` in `include/wwn_iomfb.h` (same names as the frozen
+iland sink) plus `iomfb_display_set_present` /
+`GpuSwapchain::present_external`.
 
 ## Guest proof (vphone `wawona-jb`, 2026-09-04)
 

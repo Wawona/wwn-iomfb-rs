@@ -35,6 +35,7 @@ pub struct GpuFrame {
     pub iosurface_id: u32,
     pub width: u32,
     pub height: u32,
+    pub bytes_per_row: u32,
 }
 
 impl GpuSwapchain {
@@ -108,7 +109,15 @@ impl GpuSwapchain {
             iosurface_id: slot.surface.id(),
             width: self.width,
             height: self.height,
+            bytes_per_row: slot.surface.bytes_per_row(),
         })
+    }
+
+    pub fn current_surface(&self) -> *mut core::ffi::c_void {
+        self.slots
+            .get(self.next)
+            .map(|slot| slot.surface.as_ptr())
+            .unwrap_or(core::ptr::null_mut())
     }
 
     /// Present the last acquired slot. Waits GPU, then userspace present. Zero-copy.

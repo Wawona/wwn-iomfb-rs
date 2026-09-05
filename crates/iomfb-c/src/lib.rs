@@ -1,6 +1,8 @@
 //! C ABI for tipas. Names are ours, not Apple's header.
 //! Swap / display / restore are confirmed on iOS 26.1 / 23B85.
 
+mod wwn;
+
 use iomfb::{
     current_channel, detect_channel, set_channel, Channel, Display, Error, GpuSwapchain,
     TouchMap, TouchSeat, TouchSpace, TouchState, Wait, CHANNEL_AUTO,

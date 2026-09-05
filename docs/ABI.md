@@ -272,4 +272,4 @@ vphone ships Metal.framework. See `docs/GPU.md` and
 | M6 | Safe Rust + C ABI | All 153 confirmed names callable (`iomfb_export` / typed families) |
 | M7 | Tipa proof | CPU smoke + Metal tipa on vphone |
 | M8 | Remaining exports | 153/153 confirmed and live-called. Two stubs: `SwapSignal`, `SwapSetUISubRegion`. Codes: `docs/LIVE.md` |
-| M9 | Hand-off | Wawona may switch Mode B present. Not implemented here |
+| M9 | Hand-off | C ABI `wwn_iomfb_*` in this crate. Wawona L4 still links frozen `iland-iomfb` |

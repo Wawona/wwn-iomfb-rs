@@ -115,7 +115,7 @@ Lead, not authority. Confirm each selector on **iOS 26.1**.
 | S5-kern-end-5 | `_kern_SwapEnd` is userclient method 5 | confirmed |
 | S5-struct-size | Struct size is a kernel property: 26.1 base `0x560`, 26.4 `0x588`, iOS 27 native `0x6e0`. Userland 18.6.2 sent `0x514`, 26.0 sent `0x548` | confirmed |
 | S5-virt | `_virt_SwapEnd` does no IOConnect; in-process callback. 27 `_virt_*` T symbols on this guest | confirmed |
-| S5-force-kern | Force-kern rewrites trampoline first insn to `b _kern_Swap*`. Validated on iOS 27 VZ, not the TrollStore contract. Do not ship | unconfirmed |
+| S5-force-kern | Force-kern rewrites trampoline first insn to `b _kern_Swap*`. Guest 26.1 still `cbz` trampolines (not applied). iOS 27 VZ CFW only. Do not ship | confirmed |
 | S5-guest-patch | Our vphone 26.1 guest may already have the SwapEnd size patch. Diff vs stock 23B85 | refuted |
 
 ## S6. Conflicts the first Ghidra pass must settle
@@ -144,5 +144,7 @@ Lead, not authority. Confirm each selector on **iOS 26.1**.
 
 Leftover `unconfirmed` rows are not missing Ghidra work:
 
-- `S1-iland-bind` is M9. Wawona L4 present hook. Not this crate.
-- `S5-force-kern` is a CFW rewrite. Documented. Do not ship. Not TrollStore ABI.
+- `S1-iland-bind` is M9. This crate ships `wwn_iomfb_*`. Wawona L4
+  still links frozen `iland-iomfb`.
+- `S5-force-kern` is confirmed as CFW-only. Guest 26.1 trampolines are
+  still `cbz`/`ldr`/`braaz`. The crate does not rewrite them.

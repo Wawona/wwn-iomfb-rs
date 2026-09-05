@@ -34,6 +34,10 @@ Display::jailbreak_main() / iomfb_display_open_jailbreak
 
 `iomfb_full_re()` is 1 only on the jailbreak channel.
 
+Wawona L4 Desktop can link `include/wwn_iomfb.h` (`wwn_iomfb_open` /
+`present_iosurface`). That is the M9 hook. Do not import this crate
+from `wwn-iland`.
+
 ## Build
 
 TrollStore tipas: `cargo build -p iomfb-c --target aarch64-apple-ios`

@@ -103,7 +103,7 @@ milestones = {
     "M6 Safe Rust + C ABI": "done. Confirmed families bound in iomfb / iomfb-c. Product path is userspace.",
     "M7 Tipa proof": "done. Smoke + bench tipas on vphone. Userspace bench: userland=1 bound=0 has_metal=1.",
     "M8 Remaining exports": "done. 153/153 public names confirmed. Live return codes in docs/LIVE.md.",
-    "M9 Hand-off": "open. S1-iland-bind is Wawona L4. Not implemented in this crate.",
+    "M9 Hand-off": "open. Crate ships wwn_iomfb_*. S1-iland-bind waits on Wawona L4 switching off frozen iland-iomfb.",
 }
 
 for title, blurb in milestones.items():
@@ -133,7 +133,7 @@ sync_issue() {
   number="$(issue_for_title "$title")"
   if [[ -z "$number" ]]; then
     echo "skip (no issue): $title" >&2
-    return 1
+    return 0
   fi
   gh issue edit --repo "$REPO" "$number" --body-file "$body_file" >/dev/null
   echo "updated #$number $title" >&2
