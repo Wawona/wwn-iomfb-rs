@@ -445,6 +445,13 @@ pub extern "C" fn iomfb_swapchain_set_present(
 }
 
 #[no_mangle]
+pub extern "C" fn iomfb_swapchain_is_userland(swapchain: *mut core::ffi::c_void) -> i32 {
+    swapchain_mut(swapchain)
+        .map(|sw| i32::from(sw.display().is_userland()))
+        .unwrap_or(0)
+}
+
+#[no_mangle]
 pub extern "C" fn iomfb_swapchain_open(out: *mut *mut core::ffi::c_void) -> i32 {
     if out.is_null() {
         return IOMFB_C_MISSING;
@@ -1019,6 +1026,8 @@ mod tests {
         let mut h = 0u32;
         assert_eq!(iomfb_display_size(p, &mut w, &mut h), IOMFB_C_OK);
         assert_eq!((w, h), (640, 480));
+        assert_eq!(iomfb_factory_calibration_begin(p), IOMFB_C_ABSENT);
+        assert_eq!(iomfb_bound_export_count(), 0);
         iomfb_display_close(p);
     }
 

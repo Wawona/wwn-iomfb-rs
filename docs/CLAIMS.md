@@ -28,7 +28,7 @@ Cite `docs/SOURCES.md`. Do not copy gist or wiki C.
 | S1-hold | Exclusive hold is not an IOMFB export. Re-present last surface if no client swap for ~12 ms. `SwapWait` every commit | wwn-rs | confirmed |
 | S1-sel | Userclient selectors 3 default, 4 begin, 5 end, 6 wait, 8 size, 9 vsync (notify type 5 / sel 0x48), 12 power, 52 cancel (per-token) | wiki / aiaf / wwn-h | confirmed |
 | S1-cancel-absent | `SwapCancel` is not in the Wawona trampoline | wwn-m | confirmed |
-| S1-iland-bind | Weston DRM page-flip -> `wwn_modeb_desktop_present_iosurface` -> same swap path | wwn-present | unconfirmed |
+| S1-iland-bind | Weston DRM page-flip -> `iomfb_display_set_present` / `present_external` (Wawona L4). Not this crate | wwn-present | unconfirmed |
 | S1-ents | Tipa ents: `com.apple.private.IOMobileFramebuffer`, `IOMobileFramebufferUserClient` + `IOSurfaceRootUserClient`, `no-sandbox` / `platform-application`, `allow-explicit-graphics-priority`. Never IOWatchdog | fbvnc / Wawona tipa rule | confirmed |
 
 HID park in `WWNModeBDisplayClaim.m` is **not** IOMFB. Out of this crate.

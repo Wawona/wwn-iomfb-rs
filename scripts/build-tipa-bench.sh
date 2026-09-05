@@ -18,9 +18,8 @@ METAL=(xcrun -sdk iphoneos metal)
 METALLIB=(xcrun -sdk iphoneos metallib)
 
 LIB="$HERE/target/aarch64-apple-ios/release/libiomfb_c.a"
-if [[ ! -f "$LIB" ]]; then
-  cargo build -p iomfb-c --release --target aarch64-apple-ios --features apple-iomfb
-fi
+# Product tipa: no apple-iomfb. Do not reuse a lab archive that can dlopen IOMFB.
+cargo build -p iomfb-c --release --target aarch64-apple-ios
 
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
@@ -80,15 +79,10 @@ cat > "$WORKDIR/ents.plist" <<'EOF'
   <true/>
   <key>com.apple.private.security.no-sandbox</key>
   <true/>
-  <key>com.apple.private.IOMobileFramebuffer</key>
-  <true/>
-  <key>com.apple.private.allow-explicit-graphics-priority</key>
-  <true/>
   <key>com.apple.IOSurface.IOSurface</key>
   <true/>
   <key>com.apple.security.iokit-user-client-class</key>
   <array>
-    <string>IOMobileFramebufferUserClient</string>
     <string>IOSurfaceRootUserClient</string>
     <string>IOGPUDeviceUserClient</string>
     <string>AGXDeviceUserClient</string>

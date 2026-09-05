@@ -275,4 +275,31 @@ mod tests {
     fn zero_size_is_rejected() {
         assert!(Userland::new(0, 480, true).is_err());
     }
+
+    #[test]
+    fn present_callback_fires() {
+        use std::sync::atomic::AtomicI32;
+        static HITS: AtomicI32 = AtomicI32::new(0);
+        unsafe extern "C" fn cb(
+            _ctx: *mut core::ffi::c_void,
+            surface: *mut core::ffi::c_void,
+            width: u32,
+            height: u32,
+            token: i32,
+            layer: i32,
+        ) {
+            assert_eq!((width, height, layer), (64, 48, 1));
+            assert!(!surface.is_null());
+            assert!(token > 0);
+            HITS.fetch_add(1, Ordering::SeqCst);
+        }
+        let u = Userland::new(64, 48, true).unwrap();
+        u.set_present(Some(cb), core::ptr::null_mut());
+        let token = u.swap_begin();
+        u.swap_set_layer(1, 0x1 as *mut core::ffi::c_void).unwrap();
+        u.swap_end().unwrap();
+        u.swap_wait(token, crate::Wait::UntilDisplayed).unwrap();
+        assert_eq!(HITS.load(Ordering::SeqCst), 1);
+        assert_eq!(u.last_surface() as usize, 1);
+    }
 }

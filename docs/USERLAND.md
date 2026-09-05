@@ -29,3 +29,33 @@ invent a virt vtable.
 
 Wawona L4 Desktop still binds later (`S1-iland-bind`). The hook is
 `iomfb_display_set_present` / `GpuSwapchain::present_external`.
+
+## Guest proof (vphone `wawona-jb`, 2026-09-04)
+
+`iomfb-userland` is built **without** `apple-iomfb` and signed **without**
+`IOMobileFramebufferUserClient`. The Mach-O has no
+`IOMobileFramebuffer.framework` load path.
+
+```text
+acquire surface=0x101426bf0 metal=0x10142db20 sid=4 has_metal=1
+userland=1 bound=0 has_metal=1 sid=4 zero=1 token=1 wait=0 presents=1
+PASS userspace no-IOConnect
+```
+
+Bench tipa build 31 (`com.aspauldingcode.wawona.iomfb.bench`), TrollStore
+container install, `uiopen wawona-iomfb-bench://`. No IOMFB userclient
+entitlement. `/tmp/iomfb-bench.log`:
+
+```text
+iomfb_swapchain_open rc=0 userland=1 bound=0 has_metal=1
+MTLCreateSystemDefaultDevice=Apple Paravirtual device GPU display=1290x2796
+frame=15 fps=49.4 gpu_ms=10.29 cpu_ms=14.52 … sid=26 zero=1 setend=0 wait=0 token=15
+frame=750 fps=60.0 gpu_ms=7.20 cpu_ms=8.08 … sid=26 zero=1 setend=0 wait=0 token=750
+```
+
+`sid` repeats every 15 frames because the triple-buffer period divides
+15. `bound=0` means the process never `dlopen`ed Apple IOMFB.
+SpringBoard still composites the app window.
+
+Lab oracles (`iomfb-live`, `iomfb-matrix`, `tipa-smoke`, `tipa-metal`)
+still set `WWN_IOMFB_APPLE=1` or raw-`dlopen` Apple IOMFB.

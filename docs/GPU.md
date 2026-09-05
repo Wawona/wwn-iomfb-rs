@@ -10,7 +10,7 @@ TrollStore app / jailbreak tweak / Wawona compositor
   -> IOSurface (BGRA)
   -> Metal texture wrap (same backing, render target)
   -> iomfb::GpuSwapchain::present  or  present_external
-  -> IOMFB layer 0
+  -> present callback (CALayer / iland)
 ```
 
 Linux `zwp_linux_dmabuf_v1` on Wawona already stores an IOSurface. When
@@ -21,7 +21,7 @@ IOSurface into `present_external`. The IOSurfaceID must not change.
 
 | Consumer | How it links | Privilege |
 |---|---|---|
-| TrollStore `.tipa` | static `iomfb-c` + `include/iomfb.h`, ldid IOMFB ents | No jailbreak. No ElleKit |
+| TrollStore `.tipa` | static `iomfb-c` + `include/iomfb.h`, IOSurface/Metal ents | No IOMFB userclient |
 | Jailbreak tweak | same library, process already unsandboxed | Sileo / ElleKit is the tweak, not this crate |
 | Wawona Mode B Desktop | later L4 call into `GpuSwapchain::present_external` | TrollStore or Sileo |
 
@@ -83,8 +83,8 @@ magenta on the same IOSurfaceID. Do not add a physical-only branch.
 `iomfb_present_info.zero_copy` is 1 on this path.
 
 Heavy Metal bench tipa: `scripts/build-tipa-bench.sh` (bundle
-`com.aspauldingcode.wawona.iomfb.bench`). Links `iomfb-c`. Logs
-`/tmp/iomfb-bench.log` (FPS, GPU ms, CPU ms, `NSProcessInfo` thermal,
-host CPU load). Same IOSurfaceID from Metal encode to `SwapSetLayer`.
-On vphone the paravirt GPU can drop to about 10 FPS at 1290x2796 and
-stall guest SSH. That is the load test working. Pinch down to recover.
+`com.aspauldingcode.wawona.iomfb.bench`). Product `iomfb-c` (no
+`apple-iomfb` feature). Logs `/tmp/iomfb-bench.log`. Guest 2026-09-04:
+`userland=1 bound=0 has_metal=1`, ~60 FPS at 1290x2796, `zero=1`,
+same IOSurface pool ID on the 15-frame cadence. Present is
+`CALayer.contents`. Pinch raises march load.

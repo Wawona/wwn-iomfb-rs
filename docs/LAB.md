@@ -121,20 +121,22 @@ power-save polarity, cancel selector, exclusive export.
 
 ## 6. Prove
 
-Slim TrollStore tipa. ldid IOMFB ents. Install into
-`/var/containers/Bundle/Application/…`, never `/var/jb/Applications/`.
+Product proof is userspace: `scripts/build-jb-userland.sh` then `dd` to
+`/var/jb/usr/local/bin/iomfb-userland`. No `WWN_IOMFB_APPLE`. No IOMFB
+userclient ents. Expect `PASS userspace no-IOConnect`.
+
+Bench tipa (`scripts/build-tipa-bench.sh`) presents into `CALayer.contents`.
+Install into `/var/containers/Bundle/Application/…`, never
+`/var/jb/Applications/`.
 
 ```bash
 packages tipa install ./….tipa --device "vphone wawona-jb"
-packages tipa open-jit <bundle> --device "vphone wawona-jb"
+uiopen --bundleid com.aspauldingcode.wawona.iomfb.bench
 ```
 
-Sock screenshot plus logs. No SpringBoard park in this crate. Exclusive is
-an IOMFB export or a documented "none exists" result.
-
-Metal tipa: `scripts/build-tipa-metal.sh`. Jailbreak CLI:
-`scripts/build-jb-cli.sh`, then `dd` to `/var/jb/usr/local/bin/iomfb-cli`.
-No ElleKit.
+Lab oracles (`iomfb-live`, `tipa-smoke`, `tipa-metal`) still ldid IOMFB
+ents and `dlopen` Apple. Sock screenshot plus logs. No SpringBoard park
+in this crate.
 
 ## 7. Sync
 

@@ -67,12 +67,25 @@ impl Wait {
     }
 }
 
-pub(crate) fn table() -> Result<&'static Symbols> {
+fn load_table() -> Result<&'static Symbols> {
     static TABLE: OnceLock<Option<Symbols>> = OnceLock::new();
     TABLE
         .get_or_init(load)
         .as_ref()
         .ok_or(Error::LoadFailed)
+}
+
+/// Apple `dlsym` table. Product path never loads it.
+pub(crate) fn table() -> Result<&'static Symbols> {
+    if !userland::apple_oracle_requested() {
+        return Err(Error::Absent);
+    }
+    load_table()
+}
+
+/// Lab `Display::apple_main` only. Still a `dlopen`.
+pub(crate) fn table_force() -> Result<&'static Symbols> {
+    load_table()
 }
 
 pub(crate) fn map_return(rc: i32) -> Result<()> {
@@ -98,7 +111,13 @@ pub struct Display {
 
 impl Display {
     fn from_getter(getter: Option<iomfb_sys::GetDisplayFn>) -> Result<Self> {
-        let symbols = table()?;
+        Self::from_loaded(getter, table()?)
+    }
+
+    fn from_loaded(
+        getter: Option<iomfb_sys::GetDisplayFn>,
+        symbols: &'static Symbols,
+    ) -> Result<Self> {
         let get = getter.or(symbols.get_main_display).ok_or(Error::MissingSymbol)?;
         let mut raw = DisplayRef(core::ptr::null_mut());
         map_return(unsafe { get(&mut raw) })?;
@@ -156,8 +175,7 @@ impl Display {
 
     /// Lab oracle `GetMainDisplay`. Product path is [`Self::userland`].
     pub fn apple_main() -> Result<Self> {
-        let symbols = table()?;
-        Self::from_getter(symbols.get_main_display)
+        Self::from_loaded(None, table_force()?)
     }
 
     pub fn set_present(&self, f: Option<PresentFn>, ctx: *mut core::ffi::c_void) {
@@ -360,5 +378,15 @@ mod tests {
         d.swap_end().unwrap();
         d.swap_wait(token, Wait::UntilDisplayed).unwrap();
         assert!(d.present_iosurface(core::ptr::null_mut()).is_err());
+    }
+
+    #[test]
+    fn apple_symbols_stay_unloaded_by_default() {
+        assert!(!userland::apple_oracle_requested());
+        assert_eq!(bound_export_count(), 0);
+        assert!(matches!(
+            export_ptr("IOMobileFramebufferSwapEnd"),
+            Err(Error::Absent)
+        ));
     }
 }

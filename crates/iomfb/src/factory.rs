@@ -75,7 +75,24 @@ mod tests {
     fn factory_needs_framework_off_device() {
         assert!(matches!(
             Display::main(),
-            Err(Error::LoadFailed) | Err(Error::MissingSymbol)
+            Err(Error::LoadFailed) | Err(Error::MissingSymbol) | Err(Error::Absent)
         ));
+    }
+
+    #[test]
+    fn factory_absent_on_userland() {
+        let d = Display::userland(64, 64).unwrap();
+        unsafe {
+            assert!(matches!(calibration_begin(&d), Err(Error::Absent)));
+            assert!(matches!(factory_portal(&d, core::ptr::null_mut()), Err(Error::Absent)));
+            assert!(matches!(
+                kernel_tests(&d, 0x1 as *mut core::ffi::c_void),
+                Err(Error::Absent)
+            ));
+            assert!(matches!(
+                hdcp_send_request(&d, core::ptr::null_mut(), 0, core::ptr::null_mut(), 0),
+                Err(Error::Absent)
+            ));
+        }
     }
 }

@@ -246,7 +246,7 @@ mod tests {
     fn live_needs_a_display_off_device() {
         assert!(matches!(
             unsafe { live_call_name(None, "IOMobileFramebufferSwapEnd") },
-            Err(Error::LoadFailed) | Err(Error::MissingSymbol)
+            Err(Error::Absent) | Err(Error::LoadFailed) | Err(Error::MissingSymbol)
         ));
     }
 

@@ -260,8 +260,11 @@ static void bench_present(
 
     void *sw = NULL;
     int rc = iomfb_swapchain_open(&sw);
-    fprintf(stderr, "iomfb_swapchain_open rc=%d bound=%u has_metal=%d\n",
-        rc, iomfb_bound_export_count(), sw ? iomfb_swapchain_has_metal(sw) : 0);
+    fprintf(stderr, "iomfb_swapchain_open rc=%d userland=%d bound=%u has_metal=%d\n",
+        rc,
+        sw ? iomfb_swapchain_is_userland(sw) : 0,
+        iomfb_bound_export_count(),
+        sw ? iomfb_swapchain_has_metal(sw) : 0);
     if (rc != IOMFB_C_OK || !sw) {
         return YES;
     }

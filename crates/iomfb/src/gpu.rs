@@ -175,4 +175,17 @@ mod tests {
     fn main_fails_closed_off_device() {
         assert!(GpuSwapchain::main().is_err());
     }
+
+    #[test]
+    fn attach_userland_does_not_need_apple() {
+        let d = Display::userland(32, 32).unwrap();
+        match GpuSwapchain::attach(d) {
+            Ok(sw) => {
+                assert!(sw.display().is_userland());
+                assert_eq!(sw.size(), (32, 32));
+            }
+            Err(Error::SurfaceCreateFailed) => {}
+            Err(e) => panic!("unexpected attach error: {e:?}"),
+        }
+    }
 }

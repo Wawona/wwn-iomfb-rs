@@ -12,8 +12,7 @@ Reverse engineering uses jailbroken **vphone** `wawona-jb` (iOS 26.1 /
 
 This crate is the present library for:
 
-- TrollStore framebuffer apps (Metal + touch mapping)
-- Jailbreak tweaks that own the panel
+- TrollStore / tweak apps that present Metal into an IOSurface
 - Later **Wawona Mode B Desktop Replacement** (TrollStore or Sileo)
 
 It is not Desktop Replacement itself. HID / SpringBoard park stays in

@@ -94,6 +94,7 @@ void iomfb_display_close(void *display);
 
 int iomfb_swapchain_open(void **out);
 int iomfb_swapchain_set_present(void *swapchain, iomfb_present_fn fn, void *ctx);
+int iomfb_swapchain_is_userland(void *swapchain);
 int iomfb_swapchain_size(void *swapchain, uint32_t *w, uint32_t *h);
 int iomfb_swapchain_has_metal(void *swapchain);
 int iomfb_swapchain_acquire(
