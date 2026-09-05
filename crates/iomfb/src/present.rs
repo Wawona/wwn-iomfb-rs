@@ -1,7 +1,7 @@
-//! One IOMFB commit. Set+end is the present. Wait is reported, not guessed.
+//! One IOMFB commit. Set+end is the present. Do not block on SwapWait.
 
-use crate::{Display, Error, Result, Wait};
-use iomfb_abi::{PresentStatus, WaitOutcome, PRESENT_LAYER};
+use crate::{Display, Error, Result};
+use iomfb_abi::{PresentStatus, WaitOutcome, PRESENT_LAYER, WAIT_INCOMPLETE_GUEST};
 
 impl Display {
     /// Zero-copy present of an existing IOSurface on layer 0.
@@ -38,14 +38,14 @@ impl Display {
         let token = self.swap_begin()?;
         self.swap_set_layer(layer, surface, rect, rect, 0)?;
         self.swap_end()?;
-        let wait = match self.swap_wait(token, Wait::UntilDisplayed) {
-            Ok(()) => WaitOutcome::Displayed,
-            Err(Error::Iomfb(rc)) => WaitOutcome::from_wait_rc(rc),
-            Err(e) => return Err(e),
-        };
+        // SwapEnd already queued the frame. SwapWait(until-displayed) is
+        // lead 0 and blocks. On vphone the paravirt IOMFB never
+        // CommandWakes; the 5s gate cancels swaps and wedges the guest
+        // (IOMFB swap_wait_gated). Physical still scans out without us
+        // waiting.
         Ok(PresentStatus {
             token,
-            wait,
+            wait: WaitOutcome::Incomplete(WAIT_INCOMPLETE_GUEST),
             zero_copy: true,
         })
     }
