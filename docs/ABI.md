@@ -22,8 +22,9 @@ Status per symbol: `unconfirmed` | `confirmed` | `refuted` | `absent`.
 | Stock / class cache | research IPSW `iPhone99,11` 23B85 |
 | Ghidra project | `/Users/8amps/GhidraVibe/ghidra-vibe-projects/wwn-iomfb` |
 | Ghidra program | `/IOMobileFramebuffer` |
-| Live guest IP | `192.168.64.104` (drifts; window title / `guest-ip.txt`) |
+| Live guest IP | `192.168.64.110` (drifts; window title / `guest-ip.txt`) |
 | Public exports | 153 `IOMobileFramebuffer*` T symbols |
+| Live codes | Every public name has a vphone return code in [`docs/LIVE.md`](LIVE.md). Two stubs (`SwapSignal`, `SwapSetUISubRegion`) are `absent`. `InstallVirtualDisplay(s)` SIGSEGV on a null vtable (no fake virt funcs). |
 | Tipa proof | `com.aspauldingcode.wawona.iomfb.smoke` in containers. Bind **153/153**. `GetMain` 1290x2796. `SwapSetLayer`/`SwapEnd` returned 0. `SwapWait(0)` returned `0xe000002b`. Restore ran. Sock shot was a full-frame present. |
 | CFW note | Live guest DSC (5.5G, 82 slices) extracted. Live vs class Mach-O hashes differ (extract slide). Live `_kern_SwapEnd` is still `mov w3,#0x560` / sel 5. No CFW size patch on this guest. |
 
@@ -269,5 +270,5 @@ vphone ships Metal.framework. See `docs/GPU.md` and
 | M5 | Exclusive search | no disable-others export; SwapCancelAll is this connection |
 | M6 | Safe Rust + C ABI | All 153 confirmed names callable (`iomfb_export` / typed families) |
 | M7 | Tipa proof | CPU smoke + Metal tipa on vphone |
-| M8 | Remaining exports | 153/153 confirmed. Two stubs: `SwapSignal`, `SwapSetUISubRegion` |
+| M8 | Remaining exports | 153/153 confirmed and live-called. Two stubs: `SwapSignal`, `SwapSetUISubRegion`. Codes: `docs/LIVE.md` |
 | M9 | Hand-off | Wawona may switch Mode B present. Not implemented here |

@@ -69,6 +69,7 @@ HUD: FPS, GPU ms, CPU ms, thermal, CPU %, load, touches, steps.
 - [`docs/SOURCES.md`](docs/SOURCES.md): bibliography. Cite, do not copy.
 - [`docs/CLAIMS.md`](docs/CLAIMS.md): prior claims.
 - [`docs/ABI.md`](docs/ABI.md): iOS 26.1 guest findings.
+- [`docs/LIVE.md`](docs/LIVE.md): vphone return code for every public export.
 - [`docs/LAB.md`](docs/LAB.md): vphone / GhidraVibe loop.
 
 ## Hard rejects

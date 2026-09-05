@@ -721,6 +721,218 @@ pub extern "C" fn iomfb_touch_close(touch: *mut core::ffi::c_void) {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn iomfb_get_gamma_table(
+    display: *mut core::ffi::c_void,
+    buf: *mut core::ffi::c_void,
+    len: u32,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    if buf.is_null() || (len as usize) < iomfb_abi::GAMMA_TABLE_SIZE {
+        return IOMFB_C_INCOMPATIBLE;
+    }
+    let table = unsafe { core::slice::from_raw_parts_mut(buf.cast::<u8>(), len as usize) };
+    match d.get_gamma_table(table) {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_set_gamma_table(
+    display: *mut core::ffi::c_void,
+    buf: *const core::ffi::c_void,
+    len: u32,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    if buf.is_null() || (len as usize) < iomfb_abi::GAMMA_TABLE_SIZE {
+        return IOMFB_C_INCOMPATIBLE;
+    }
+    let table = unsafe { core::slice::from_raw_parts(buf.cast::<u8>(), len as usize) };
+    match d.set_gamma_table(table) {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_enable_vsync(display: *mut core::ffi::c_void) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.enable_vsync_notifications() {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_disable_vsync(display: *mut core::ffi::c_void) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.disable_vsync_notifications() {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_get_type_id(out: *mut usize) -> i32 {
+    match Display::type_id() {
+        Ok(id) => {
+            if !out.is_null() {
+                unsafe { *out = id };
+            }
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_get_service_object(
+    display: *mut core::ffi::c_void,
+) -> *mut core::ffi::c_void {
+    let Some(d) = display_mut(display) else {
+        return core::ptr::null_mut();
+    };
+    d.service_object().unwrap_or(core::ptr::null_mut())
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_open_by_name(
+    cf_name: *mut core::ffi::c_void,
+    out: *mut *mut core::ffi::c_void,
+) -> i32 {
+    if out.is_null() {
+        return IOMFB_C_MISSING;
+    }
+    match unsafe { Display::open_by_name_cf(cf_name) } {
+        Ok(d) => {
+            unsafe { *out = Box::into_raw(Box::new(d)) as *mut core::ffi::c_void };
+            IOMFB_C_OK
+        }
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_ready_for_swap(display: *mut core::ffi::c_void) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match d.ready_for_swap() {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_factory_portal(
+    display: *mut core::ffi::c_void,
+    arg: *mut core::ffi::c_void,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match unsafe { iomfb::factory::factory_portal(d, arg) } {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_kernel_tests(
+    display: *mut core::ffi::c_void,
+    args: *mut core::ffi::c_void,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match unsafe { iomfb::factory::kernel_tests(d, args) } {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_hdcp_send_request(
+    display: *mut core::ffi::c_void,
+    req: *mut core::ffi::c_void,
+    req_len: u32,
+    reply: *mut core::ffi::c_void,
+    reply_len: u32,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    match unsafe {
+        iomfb::factory::hdcp_send_request(d, req, req_len as usize, reply, reply_len as usize)
+    } {
+        Ok(()) => IOMFB_C_OK,
+        Err(e) => map_err(e),
+    }
+}
+
+fn export_c_names() -> &'static [std::ffi::CString] {
+    static NAMES: std::sync::OnceLock<Vec<std::ffi::CString>> = std::sync::OnceLock::new();
+    NAMES.get_or_init(|| {
+        iomfb_abi::PUBLIC_EXPORTS
+            .iter()
+            .map(|n| std::ffi::CString::new(*n).expect("export name"))
+            .collect()
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_public_export_count() -> u32 {
+    iomfb::public_export_count() as u32
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_public_export_name(i: u32) -> *const core::ffi::c_char {
+    export_c_names()
+        .get(i as usize)
+        .map(|s| s.as_ptr())
+        .unwrap_or(core::ptr::null())
+}
+
+#[no_mangle]
+pub extern "C" fn iomfb_live_call(
+    display: *mut core::ffi::c_void,
+    name: *const core::ffi::c_char,
+    out_rc: *mut i32,
+) -> i32 {
+    let Some(d) = display_mut(display) else {
+        return IOMFB_C_MISSING;
+    };
+    if name.is_null() {
+        return IOMFB_C_MISSING;
+    }
+    let Ok(s) = unsafe { core::ffi::CStr::from_ptr(name) }.to_str() else {
+        return IOMFB_C_MISSING;
+    };
+    match unsafe { d.live_call(s) } {
+        Ok(rc) => {
+            if !out_rc.is_null() {
+                unsafe { *out_rc = rc };
+            }
+            IOMFB_C_OK
+        }
+        Err(e) => {
+            if !out_rc.is_null() {
+                unsafe { *out_rc = map_err(e) };
+            }
+            map_err(e)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -735,5 +947,19 @@ mod tests {
     fn touch_open_needs_display() {
         let rc = iomfb_touch_open(core::ptr::null_mut(), core::ptr::null_mut());
         assert_eq!(rc, IOMFB_C_MISSING);
+    }
+
+    #[test]
+    fn live_call_needs_display() {
+        let name = std::ffi::CString::new("IOMobileFramebufferSwapEnd").unwrap();
+        let rc = iomfb_live_call(core::ptr::null_mut(), name.as_ptr(), core::ptr::null_mut());
+        assert_eq!(rc, IOMFB_C_MISSING);
+    }
+
+    #[test]
+    fn public_export_table_is_complete() {
+        assert_eq!(iomfb_public_export_count(), 153);
+        assert!(!iomfb_public_export_name(0).is_null());
+        assert!(iomfb_public_export_name(153).is_null());
     }
 }

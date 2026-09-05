@@ -82,6 +82,9 @@ pub mod lead_selector {
 /// Guest Get/SetGammaTable struct size.
 pub const GAMMA_TABLE_SIZE: usize = 0xc0c;
 
+/// `IOMobileFramebufferKernelTests` argument struct. Selector `0x38`.
+pub const KERNEL_TESTS_SIZE: usize = 0x9c;
+
 /// `_kern_SwapEnd` struct size on guest 26.1 / 23B85. Lives at `fb+0x18`.
 pub const SWAP_ARG_SIZE: usize = 0x560;
 

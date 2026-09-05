@@ -25,6 +25,10 @@ extern "C" {
 #define IOMFB_C_NULL_SURFACE -6
 #define IOMFB_C_INCOMPATIBLE -7
 
+#define IOMFB_GAMMA_TABLE_SIZE 0xc0c
+#define IOMFB_KERNEL_TESTS_SIZE 0x9c
+#define IOMFB_PUBLIC_EXPORTS 153
+
 #define IOMFB_TOUCH_UP 0
 #define IOMFB_TOUCH_DOWN 1
 #define IOMFB_TOUCH_MOTION 2
@@ -128,6 +132,27 @@ int iomfb_set_white_on_black(void *display, int on);
 int iomfb_set_color_remap_mode(void *display, int32_t mode);
 int iomfb_get_color_remap_mode(void *display, int32_t *out);
 int iomfb_factory_calibration_begin(void *display);
+int iomfb_factory_portal(void *display, void *arg);
+int iomfb_kernel_tests(void *display, void *args);
+int iomfb_hdcp_send_request(
+    void *display,
+    void *req,
+    uint32_t req_len,
+    void *reply,
+    uint32_t reply_len);
+
+int iomfb_get_gamma_table(void *display, void *buf, uint32_t len);
+int iomfb_set_gamma_table(void *display, const void *buf, uint32_t len);
+int iomfb_enable_vsync(void *display);
+int iomfb_disable_vsync(void *display);
+int iomfb_get_type_id(uintptr_t *out);
+void *iomfb_get_service_object(void *display);
+int iomfb_open_by_name(void *cf_name, void **out);
+int iomfb_ready_for_swap(void *display);
+
+uint32_t iomfb_public_export_count(void);
+const char *iomfb_public_export_name(uint32_t i);
+int iomfb_live_call(void *display, const char *name, int32_t *out_rc);
 
 #ifdef __cplusplus
 }

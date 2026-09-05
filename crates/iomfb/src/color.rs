@@ -63,9 +63,26 @@ impl Display {
         map_return(unsafe { f(self.raw, value) })
     }
 
-    /// Confirmed hold helper. Not an exclusive grab.
+    /// Confirmed 3-GPR hold helper. Not an exclusive grab.
     pub fn ready_for_swap(&self) -> Result<()> {
         let f = self.symbols.ready_for_swap.ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(self.raw, core::ptr::null_mut(), 0) })
+    }
+
+    /// Notify type 5 / sel `0x48`. Null callback is a recorded enable.
+    pub fn enable_vsync_notifications(&self) -> Result<()> {
+        let f = self
+            .symbols
+            .enable_vsync_notifications
+            .ok_or(Error::MissingSymbol)?;
+        map_return(unsafe { f(self.raw, core::ptr::null_mut(), core::ptr::null_mut()) })
+    }
+
+    pub fn disable_vsync_notifications(&self) -> Result<()> {
+        let f = self
+            .symbols
+            .disable_vsync_notifications
+            .ok_or(Error::MissingSymbol)?;
         map_return(unsafe { f(self.raw) })
     }
 

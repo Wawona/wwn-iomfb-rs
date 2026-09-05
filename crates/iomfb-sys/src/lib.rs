@@ -19,6 +19,9 @@ pub type GetLayerDefaultSurfaceFn =
 pub type PowerIntFn = unsafe extern "C" fn(DisplayRef, i32) -> IomfbReturn;
 pub type GetU32Fn = unsafe extern "C" fn(DisplayRef, *mut u32) -> IomfbReturn;
 pub type SwapCancelAllFn = unsafe extern "C" fn(DisplayRef) -> IomfbReturn;
+/// Confirmed 3 GPR. Extra args are unused on the IsMainDisplay path.
+pub type ReadyForSwapFn =
+    unsafe extern "C" fn(DisplayRef, *mut core::ffi::c_void, i32) -> IomfbReturn;
 pub type NotifyEnableFn =
     unsafe extern "C" fn(DisplayRef, *mut core::ffi::c_void, *mut core::ffi::c_void) -> IomfbReturn;
 pub type NotifyDisableFn = unsafe extern "C" fn(DisplayRef) -> IomfbReturn;
@@ -65,7 +68,7 @@ pub struct Symbols {
     pub set_gamma_table: Option<unsafe extern "C" fn(DisplayRef, *const core::ffi::c_void) -> IomfbReturn>,
     pub get_gamma_table: Option<unsafe extern "C" fn(DisplayRef, *mut core::ffi::c_void) -> IomfbReturn>,
     pub set_brightness_correction: Option<PowerIntFn>,
-    pub ready_for_swap: Option<SwapCancelAllFn>,
+    pub ready_for_swap: Option<ReadyForSwapFn>,
     pub wait_surface: Option<SwapCancelAllFn>,
     pub set_droppable: Option<PowerIntFn>,
     pub swap_cancel_all_get_current: Option<GetU32Fn>,

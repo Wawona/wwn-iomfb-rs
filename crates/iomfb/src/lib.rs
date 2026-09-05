@@ -9,11 +9,13 @@ mod call;
 mod color;
 pub mod factory;
 mod gpu;
+mod live;
 mod present;
 mod surface;
 mod touch;
 
 pub use call::{export_is_stub, export_ptr};
+pub use live::{live_call_name, public_export_count, public_export_name};
 pub use gpu::{GpuFrame, GpuSwapchain};
 pub use iomfb_abi::{PixelFormat, PresentStatus, WaitOutcome, SWAPCHAIN_BUFFERS};
 pub use surface::{IoSurface, MetalDevice, MetalQueue, MetalTexture};
