@@ -28,7 +28,7 @@ Cite `docs/SOURCES.md`. Do not copy gist or wiki C.
 | S1-hold | Exclusive hold is not an IOMFB export. Re-present last surface if no client swap for ~12 ms. `SwapWait` every commit | wwn-rs | confirmed |
 | S1-sel | Userclient selectors 3 default, 4 begin, 5 end, 6 wait, 8 size, 9 vsync (notify type 5 / sel 0x48), 12 power, 52 cancel (per-token) | wiki / aiaf / wwn-h | confirmed |
 | S1-cancel-absent | `SwapCancel` is not in the Wawona trampoline | wwn-m | confirmed |
-| S1-iland-bind | Weston DRM page-flip -> `iomfb_display_set_present` / `present_external` (Wawona L4). Not this crate | wwn-present | unconfirmed |
+| S1-iland-bind | Wawona L4 Mode B links `ios.nix` / `wwn_iomfb_*`. Weston DRM page-flip -> `present_iosurface`. Frozen `wwn-iland-iomfb` is not the present path | wwn-present / tipa 55 `b55-weston.jpg` | confirmed |
 | S1-ents | Tipa ents: `com.apple.private.IOMobileFramebuffer`, `IOMobileFramebufferUserClient` + `IOSurfaceRootUserClient`, `no-sandbox` / `platform-application`, `allow-explicit-graphics-priority`. Never IOWatchdog | fbvnc / Wawona tipa rule | confirmed |
 
 HID park in `WWNModeBDisplayClaim.m` is **not** IOMFB. Out of this crate.
@@ -144,7 +144,8 @@ Lead, not authority. Confirm each selector on **iOS 26.1**.
 
 Leftover `unconfirmed` rows are not missing Ghidra work:
 
-- `S1-iland-bind` is M9. This crate ships `iomfb-ios` / `wwn_iomfb_*`.
-  Status flips when Wawona L4 links it and Mode B present returns 0.
+- `S1-iland-bind` is M9. Wawona L4 Mode B links `ios.nix` / `wwn_iomfb_*`.
+  Tipa 55 Weston present already returned 0 on vphone. New tips use
+  `-lwwn_iomfb`, not frozen `wwn-iland-iomfb`.
 - `S5-force-kern` is confirmed as CFW-only. Guest 26.1 trampolines are
   still `cbz`/`ldr`/`braaz`. The crate does not rewrite them.
