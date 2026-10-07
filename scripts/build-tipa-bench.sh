@@ -92,14 +92,30 @@ cat > "$WORKDIR/ents.plist" <<'EOF'
 </plist>
 EOF
 
+SWIFT=(xcrun -sdk iphoneos swiftc)
+BENCH_DIR="$HERE/examples/tipa-bench"
+BRIDGE="$BENCH_DIR/tipa_bench-Bridging-Header.h"
+BENCH_SUPPORT="$BENCH_DIR/tipa_bench_support.c"
+BENCH_APP="$BENCH_DIR/TipaBenchApp.swift"
+BENCH_HOST="$BENCH_DIR/TipaBenchHost.swift"
+BENCH_METAL="$BENCH_DIR/TipaBenchMetal.swift"
+
 "$CC" -isysroot "$SDK" -arch arm64 -miphoneos-version-min=15.0 \
-  -fobjc-arc -O2 \
-  -I"$HERE/include" \
+  -O2 -I"$BENCH_DIR" \
+  -c "$BENCH_SUPPORT" -o "$WORKDIR/tipa_bench_support.o"
+
+SWIFT_COMMON=(-sdk "$SDK" -target arm64-apple-ios15.0 -parse-as-library -O \
+  -import-objc-header "$BRIDGE" -I"$HERE/include" -I"$BENCH_DIR")
+"${SWIFT[@]}" "${SWIFT_COMMON[@]}" -emit-object -wmo \
+  "$BENCH_APP" "$BENCH_HOST" "$BENCH_METAL" \
+  -o "$WORKDIR/TipaBench.o"
+
+"${SWIFT[@]}" -sdk "$SDK" -target arm64-apple-ios15.0 \
+  "$WORKDIR/tipa_bench_support.o" "$WORKDIR/TipaBench.o" \
+  -Xlinker -force_load -Xlinker "$LIB" \
   -framework CoreFoundation -framework IOSurface -framework Foundation \
   -framework Metal -framework UIKit -framework QuartzCore -framework IOKit \
-  -Wl,-force_load,"$LIB" \
-  -o "$APP/WawonaIomfbBench" \
-  "$HERE/examples/tipa-bench/main.m"
+  -o "$APP/WawonaIomfbBench"
 
 if ! command -v ldid >/dev/null; then
   echo "ldid required on PATH" >&2

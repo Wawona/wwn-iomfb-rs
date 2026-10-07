@@ -86,12 +86,20 @@ cat > "$WORKDIR/ents.plist" <<'EOF'
 </plist>
 EOF
 
+SWIFT=(xcrun -sdk iphoneos swiftc)
+METAL_PRESENT="$HERE/examples/tipa-metal/tipa_metal_present.c"
+METAL_APP="$HERE/examples/tipa-metal/TipaMetalApp.swift"
+"$CC" -isysroot "$SDK" -arch arm64 -miphoneos-version-min=15.0 \
+  -x objective-c -fobjc-arc -O2 -c "$METAL_PRESENT" -o "$WORKDIR/tipa_metal_present.o"
+"${SWIFT[@]}" -sdk "$SDK" -target arm64-apple-ios15.0 -O \
+  -import-objc-header "$HERE/examples/tipa-metal/tipa_metal_present.h" \
+  -c "$METAL_APP" -o "$WORKDIR/TipaMetalApp.o"
 "$CC" -isysroot "$SDK" -arch arm64 -miphoneos-version-min=15.0 \
   -fobjc-arc -O2 \
   -framework CoreFoundation -framework IOSurface -framework Foundation \
   -framework Metal -framework UIKit -framework IOKit \
-  -o "$APP/WawonaIomfbMetal" \
-  "$HERE/examples/tipa-metal/main.m"
+  "$WORKDIR/tipa_metal_present.o" "$WORKDIR/TipaMetalApp.o" \
+  -o "$APP/WawonaIomfbMetal"
 
 if ! command -v ldid >/dev/null; then
   echo "ldid required on PATH" >&2

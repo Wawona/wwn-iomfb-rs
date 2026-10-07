@@ -1,9 +1,10 @@
-# ffi (ObjC trampoline)
+# ffi (C + Swift Metal glue)
 
-Thin trampoline:
+Thin glue:
 
-- `iomfb_trampoline.m`: `CGRect` packing into the C ABI
-- `iomfb_surface.m`: `IOSurfaceCreate`, Metal
+- `iomfb_trampoline.c`: rect packing into the C ABI
+- `iomfb_surface.c`: `IOSurfaceCreate` (CoreFoundation)
+- `iomfb_metal.swift`: Metal
   `newTextureWithDescriptor:iosurface:plane:` (zero-copy wrap),
   command queue, `waitUntilCompleted`, GPU clear into the same surface
 

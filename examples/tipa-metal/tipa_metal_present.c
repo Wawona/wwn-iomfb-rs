@@ -70,7 +70,7 @@ static id<MTLDevice> pick_metal_device(void) {
     return sys;
 }
 
-static int present_metal_frame(void) {
+int tipa_metal_present_frame(void) {
     void *lib = dlopen(
         "/System/Library/PrivateFrameworks/IOMobileFramebuffer.framework/IOMobileFramebuffer",
         RTLD_LAZY);
@@ -230,30 +230,4 @@ static int present_metal_frame(void) {
         fprintf(stderr, "restore done\n");
     });
     return (rc == 0 && rc_set == 0 && rc_end == 0) ? 0 : 7;
-}
-
-@interface AppDelegate : UIResponder <UIApplicationDelegate>
-@property (nonatomic, strong) UIWindow *window;
-@end
-
-@implementation AppDelegate
-- (BOOL)application:(UIApplication *)application
-    didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    (void)application;
-    (void)launchOptions;
-    self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-    UIViewController *vc = [UIViewController new];
-    vc.view.backgroundColor = [UIColor colorWithRed:0.95 green:0.15 blue:0.85 alpha:1];
-    self.window.rootViewController = vc;
-    [self.window makeKeyAndVisible];
-    int rc = present_metal_frame();
-    fprintf(stderr, "present_metal_frame rc=%d\n", rc);
-    return YES;
-}
-@end
-
-int main(int argc, char *argv[]) {
-    freopen("/tmp/iomfb-metal.log", "w", stderr);
-    setvbuf(stderr, NULL, _IONBF, 0);
-    return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
 }

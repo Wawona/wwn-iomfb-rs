@@ -1,7 +1,7 @@
 //! IOSurface + Metal glue. Public SDK only. No IOMFB header.
 //!
 //! On non-Apple targets these helpers return null / 0 so the crate
-//! still tests. On Apple they call `ffi/iomfb_surface.m`.
+//! still tests. On Apple they call `ffi/iomfb_surface.c` + `iomfb_metal.swift`.
 
 use iomfb_abi::{PixelFormat, PIXEL_FORMAT_BGRA};
 
