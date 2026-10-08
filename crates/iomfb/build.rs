@@ -33,6 +33,11 @@ fn main() {
             })
     });
 
+    // Cargo TARGET is aarch64-apple-ios (no OS version). swiftc then assumes
+    // a prehistoric deployment floor and rejects Metal / IOSurface APIs.
+    // Prefer IPHONEOS_DEPLOYMENT_TARGET (ios.nix) and an arm64-apple-iosN.M
+    // triple matching the tipa / Mode B scripts.
+    let swift_target = apple_swift_target(&target);
     let mut swiftc = Command::new("swiftc");
     swiftc.arg("-c").arg(&metal_swift).arg("-o").arg(&metal_o);
     swiftc.arg("-parse-as-library");
@@ -40,7 +45,7 @@ fn main() {
     if let Some(sdk) = &sdk {
         swiftc.arg("-sdk").arg(sdk);
     }
-    swiftc.arg("-target").arg(&target);
+    swiftc.arg("-target").arg(&swift_target);
     let status = swiftc.status().expect("swiftc iomfb_metal");
     if !status.success() {
         panic!("swiftc failed compiling iomfb_metal.swift");
@@ -68,5 +73,29 @@ fn apple_sdk(target: &str) -> &'static str {
         "xros"
     } else {
         "macosx"
+    }
+}
+
+fn apple_swift_target(cargo_target: &str) -> String {
+    let ios_min = env::var("IPHONEOS_DEPLOYMENT_TARGET").unwrap_or_else(|_| "13.0".into());
+    let tv_min = env::var("TVOS_DEPLOYMENT_TARGET").unwrap_or_else(|_| "17.0".into());
+    let vision_min = env::var("XROS_DEPLOYMENT_TARGET").unwrap_or_else(|_| "26.0".into());
+    let mac_min = env::var("MACOSX_DEPLOYMENT_TARGET").unwrap_or_else(|_| "14.0".into());
+    if cargo_target == "aarch64-apple-ios" {
+        format!("arm64-apple-ios{ios_min}")
+    } else if cargo_target == "aarch64-apple-ios-sim" {
+        format!("arm64-apple-ios{ios_min}-simulator")
+    } else if cargo_target == "aarch64-apple-tvos" {
+        format!("arm64-apple-tvos{tv_min}")
+    } else if cargo_target == "aarch64-apple-tvos-sim" {
+        format!("arm64-apple-tvos{tv_min}-simulator")
+    } else if cargo_target.contains("xros") && cargo_target.contains("sim") {
+        format!("arm64-apple-xros{vision_min}-simulator")
+    } else if cargo_target.contains("xros") {
+        format!("arm64-apple-xros{vision_min}")
+    } else if cargo_target.contains("darwin") || cargo_target.contains("macos") {
+        format!("arm64-apple-macosx{mac_min}")
+    } else {
+        cargo_target.to_string()
     }
 }
