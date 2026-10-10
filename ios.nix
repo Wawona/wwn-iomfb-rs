@@ -64,7 +64,10 @@ rustPlatform.buildRustPackage {
     # rustc staticlib often drops rustc-link-arg / secondary ar libs from
     # dependency build.rs. Force-pack the Swift Metal object that build.rs
     # already compiled under OUT_DIR.
-    METAL_O=$(find target -name 'iomfb_metal.o' -print -quit)
+    METAL_O=$(find target/aarch64-apple-ios -name 'iomfb_metal.o' -print -quit)
+    if [ -z "$METAL_O" ]; then
+      METAL_O=$(find target -name 'iomfb_metal.o' -print -quit)
+    fi
     if [ -z "$METAL_O" ]; then
       echo "error: iomfb_metal.o missing under target (swiftc step in build.rs)" >&2
       exit 1
@@ -74,10 +77,17 @@ rustPlatform.buildRustPackage {
       nm -gU "$METAL_O" || true
       exit 1
     fi
-    ar r "$out/lib/libwwn_iomfb.a" "$METAL_O"
+    # Prefer an iOS arm64 object when host+ios dual-target leaves both.
+    if ! file "$METAL_O" | grep -q 'arm64'; then
+      echo "error: $METAL_O is not arm64: $(file "$METAL_O")" >&2
+      exit 1
+    fi
+    cp "$METAL_O" ./iomfb_metal.o
+    ar r "$out/lib/libwwn_iomfb.a" ./iomfb_metal.o
     ranlib "$out/lib/libwwn_iomfb.a"
-    if ! ar t "$out/lib/libwwn_iomfb.a" | grep -q 'iomfb_metal\.o'; then
-      echo "error: libwwn_iomfb.a missing iomfb_metal.o member after ar r" >&2
+    if ! ar t "$out/lib/libwwn_iomfb.a" | grep -qi 'iomfb_metal'; then
+      echo "error: libwwn_iomfb.a missing iomfb_metal member after ar r" >&2
+      ar t "$out/lib/libwwn_iomfb.a" | head -40 >&2
       exit 1
     fi
     cp include/wwn_iomfb.h "$out/include/"
