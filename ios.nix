@@ -44,11 +44,13 @@ rustPlatform.buildRustPackage {
   ];
 
   preConfigure = ''
-    ${iosToolchain.mkIOSBuildEnv { simulator = false; minVersion = "15.0"; }}
+    # Tipa Mode B floor is 14.0 (Wawona ios.nix). Do not force 15.0 here or
+    # Mach-O minos drifts above the tipa app.
+    ${iosToolchain.mkIOSBuildEnv { simulator = false; minVersion = "14.0"; }}
     export NIX_CFLAGS_COMPILE=""
     export NIX_CXXFLAGS_COMPILE=""
     export NIX_LDFLAGS=""
-    export IPHONEOS_DEPLOYMENT_TARGET="${iosToolchain.deploymentTarget}"
+    export IPHONEOS_DEPLOYMENT_TARGET="14.0"
     export RUSTFLAGS="-C linker=$XCODE_CLANG -C link-arg=-isysroot -C link-arg=$SDKROOT -C link-arg=$APPLE_DEPLOYMENT_FLAG $RUSTFLAGS"
     export CC_aarch64_apple_ios="$XCODE_CLANG"
     export CXX_aarch64_apple_ios="$XCODE_CLANGXX"

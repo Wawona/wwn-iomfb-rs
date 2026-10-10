@@ -21,17 +21,33 @@ fn main() {
         .file(&surface_c)
         .compile("iomfb_surface");
 
-    let sdk = env::var("SDKROOT").ok().or_else(|| {
-        Command::new("xcrun")
-            .args(["--sdk", apple_sdk(&target), "--show-sdk-path"])
-            .output()
-            .ok()
-            .and_then(|o| {
-                String::from_utf8(o.stdout)
-                    .ok()
-                    .map(|s| s.trim().to_string())
+    // Prefer xcrun for this Cargo TARGET. Ambient SDKROOT is often iPhoneOS
+    // during Mode B tipa builds; host build.rs then still targets macOS and
+    // swiftc dies with "sysroot for iPhoneOS but targeting MacOSX".
+    let wanted_sdk = apple_sdk(&target);
+    let sdk = Command::new("xcrun")
+        .args(["--sdk", wanted_sdk, "--show-sdk-path"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            String::from_utf8(o.stdout)
+                .ok()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+        })
+        .or_else(|| {
+            env::var("SDKROOT").ok().filter(|root| {
+                let lower = root.to_lowercase();
+                match wanted_sdk {
+                    "iphoneos" => lower.contains("iphoneos"),
+                    "appletvos" => lower.contains("appletvos"),
+                    "watchos" => lower.contains("watchos"),
+                    "xros" => lower.contains("xros"),
+                    "macosx" => lower.contains("macosx") || lower.contains("macossdk"),
+                    _ => true,
+                }
             })
-    });
+        });
 
     // Cargo TARGET is aarch64-apple-ios (no OS version). swiftc then assumes
     // a prehistoric deployment floor and rejects Metal / IOSurface APIs.
