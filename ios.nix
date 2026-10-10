@@ -61,6 +61,11 @@ rustPlatform.buildRustPackage {
     runHook preInstall
     mkdir -p "$out/lib" "$out/include"
     cp "target/${cargoTarget}/release/libiomfb_c.a" "$out/lib/libwwn_iomfb.a"
+    # Fail closed: Swift Metal glue must be inside the archive (not only surface.o).
+    if ! nm -gU "$out/lib/libwwn_iomfb.a" | grep -q 'T _iomfb_glue_metal_device'; then
+      echo "error: libwwn_iomfb.a missing iomfb_glue_metal_* (build.rs must ar metal.o)" >&2
+      exit 1
+    fi
     cp include/wwn_iomfb.h "$out/include/"
     cp include/iomfb.h "$out/include/"
     runHook postInstall

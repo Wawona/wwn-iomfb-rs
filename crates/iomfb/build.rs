@@ -67,8 +67,30 @@ fn main() {
         panic!("swiftc failed compiling iomfb_metal.swift");
     }
 
+    // Pack into a static archive like cc::Build does for surface. A bare
+    // rustc-link-arg=.o is dropped when iomfb-c emits libiomfb_c.a /
+    // libwwn_iomfb.a, so tipa Ld then misses iomfb_glue_metal_*.
+    let metal_a = PathBuf::from(&out_dir).join("libiomfb_metal.a");
+    let ar = env::var("AR").unwrap_or_else(|_| "ar".into());
+    let ar_status = Command::new(&ar)
+        .args([
+            "crus",
+            metal_a
+                .to_str()
+                .expect("OUT_DIR utf8"),
+            metal_o
+                .to_str()
+                .expect("metal_o utf8"),
+        ])
+        .status()
+        .expect("ar iomfb_metal");
+    if !ar_status.success() {
+        panic!("ar failed packing iomfb_metal.o");
+    }
+
+    println!("cargo:rustc-link-search=native={}", out_dir);
     println!("cargo:rustc-link-lib=static=iomfb_surface");
-    println!("cargo:rustc-link-arg={}", metal_o.display());
+    println!("cargo:rustc-link-lib=static=iomfb_metal");
     println!("cargo:rustc-link-lib=framework=IOSurface");
     println!("cargo:rustc-link-lib=framework=Metal");
     println!("cargo:rustc-link-lib=framework=Foundation");
