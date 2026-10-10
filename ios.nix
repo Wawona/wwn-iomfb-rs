@@ -61,9 +61,23 @@ rustPlatform.buildRustPackage {
     runHook preInstall
     mkdir -p "$out/lib" "$out/include"
     cp "target/${cargoTarget}/release/libiomfb_c.a" "$out/lib/libwwn_iomfb.a"
-    # Fail closed: Swift Metal glue must be inside the archive (not only surface.o).
-    if ! nm -gU "$out/lib/libwwn_iomfb.a" | grep -q 'T _iomfb_glue_metal_device'; then
-      echo "error: libwwn_iomfb.a missing iomfb_glue_metal_* (build.rs must ar metal.o)" >&2
+    # rustc staticlib often drops rustc-link-arg / secondary ar libs from
+    # dependency build.rs. Force-pack the Swift Metal object that build.rs
+    # already compiled under OUT_DIR.
+    METAL_O=$(find target -name 'iomfb_metal.o' -print -quit)
+    if [ -z "$METAL_O" ]; then
+      echo "error: iomfb_metal.o missing under target (swiftc step in build.rs)" >&2
+      exit 1
+    fi
+    if ! nm -gU "$METAL_O" | grep -q 'T _iomfb_glue_metal_device'; then
+      echo "error: $METAL_O missing iomfb_glue_metal_device" >&2
+      nm -gU "$METAL_O" || true
+      exit 1
+    fi
+    ar r "$out/lib/libwwn_iomfb.a" "$METAL_O"
+    ranlib "$out/lib/libwwn_iomfb.a"
+    if ! ar t "$out/lib/libwwn_iomfb.a" | grep -q 'iomfb_metal\.o'; then
+      echo "error: libwwn_iomfb.a missing iomfb_metal.o member after ar r" >&2
       exit 1
     fi
     cp include/wwn_iomfb.h "$out/include/"
